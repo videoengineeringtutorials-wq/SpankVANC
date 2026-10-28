@@ -14,7 +14,7 @@ WEB = Path(__file__).parent / "web"
 
 def make_handler(engine, token, port):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "SpankVANC/0.6"
+        server_version = "SpankVANC/0.9.1"
 
         def authorized_host(self):
             return self.headers.get("Host") in (f"127.0.0.1:{port}", f"localhost:{port}")
@@ -94,7 +94,7 @@ def serve(port, state_dir):
     engine = Engine(state_dir)
     server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(engine, secrets.token_urlsafe(32), port))
     print(f"SpankVANC control panel: http://127.0.0.1:{port}", flush=True)
-    print("Development preview. SCTE-104 program-splice conversion is available with the private build. SDI playout and recaption remain gated.", flush=True)
+    print("Development preview. SCTE-104 program-splice conversion is available with the private build. SDI playout and live Whisper captions require the matching local engine.", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

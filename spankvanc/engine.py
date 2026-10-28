@@ -30,10 +30,10 @@ YOUTUBE_SERVER = "rtmps://a.rtmps.youtube.com:443/live2"
 
 DEFAULT = {
     "name": "Main program",
-    "input": {"kind": "decklink", "address": "", "realtime": True, "format_code": "", "scte_error_policy": "continue"},
+    "input": {"kind": "decklink", "address": "", "realtime": True, "format_code": "", "scte_error_policy": "continue", "scte_pid": None},
     "outputs": [{"name": "Program TS", "kind": "udp", "address": "udp://127.0.0.1:5000?pkt_size=1316",
                  "captions": "pass", "scte": "convert", "video_codec": "h264", "enabled": True}],
-    "whisper": {"model": "small.en", "language": "en", "delay_ms": 6000, "audio_channel": 1},
+    "whisper": {"model": "small.en", "language": "en", "delay_ms": 0, "audio_channel": 1, "device": "auto"},
     "gpo": {"enabled": False, "port": "", "baud": 115200, "channel": 1, "pulse_ms": 250},
 }
 
@@ -94,6 +94,16 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
         raise ConfigError("Input realtime must be true or false")
     if not isinstance(src["format_code"], str) or (src["format_code"] and not re.fullmatch(r"[A-Za-z0-9 ]{4}", src["format_code"])):
         raise ConfigError("DeckLink mode must be a four-character code")
+    pid=src.get("scte_pid")
+    if pid in (None, ""):
+        src["scte_pid"]=None
+    else:
+        try:
+            if isinstance(pid,bool): raise ValueError()
+            pid=int(pid,16 if str(pid).lower().startswith("0x") else 10) if isinstance(pid,str) else pid
+            if not isinstance(pid,int) or not 16 <= pid <= 8190: raise ValueError()
+        except (ValueError,TypeError): raise ConfigError("SCTE-35 PID must be 16..8190, decimal or 0x hex")
+        src["scte_pid"]=pid
     if src["scte_error_policy"] not in ("continue", "stop"):
         raise ConfigError("SCTE error policy must be continue or stop")
     endpoint(src["kind"], src["address"], allow_empty=True)
@@ -159,12 +169,14 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
         if type(out["enabled"]) is not bool:
             raise ConfigError("Output enabled must be true or false")
     whisper = cfg["whisper"]
-    if whisper["model"] not in ("tiny.en", "base.en", "small.en", "medium.en", "large-v3", "turbo"):
+    if whisper["model"] not in ("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v3", "turbo"):
         raise ConfigError("Unknown Whisper model")
     if not isinstance(whisper["language"], str) or not re.fullmatch(r"[a-z]{2,3}", whisper["language"]):
         raise ConfigError("Whisper language must be a two or three letter code")
     integer(whisper["delay_ms"], 0, 60000, "Whisper delay")
-    integer(whisper["audio_channel"], 1, 64, "Whisper audio channel")
+    integer(whisper["audio_channel"], 1, 2, "Whisper audio channel")
+    if whisper["device"] not in ("auto", "cpu", "cuda"):
+        raise ConfigError("Whisper device must be auto, cpu or cuda")
     gpo = cfg["gpo"]
     if type(gpo["enabled"]) is not bool or not isinstance(gpo["port"], str):
         raise ConfigError("Invalid GPO settings")
@@ -271,10 +283,21 @@ def doctor() -> dict:
     if result["decklink_ffmpeg"]:
         try:
             probe = subprocess.run([deck_binary, "-hide_banner", "-devices"], capture_output=True, text=True, timeout=12)
+            result["decklink_output"] = any("decklink" in line and "E" in line.split()[0]
+                for line in (probe.stdout + probe.stderr).splitlines() if line.split())
             result["decklink_input"] = any("decklink" in line and "D" in line.split()[0]
                 for line in (probe.stdout + probe.stderr).splitlines() if line.split())
         except (OSError, subprocess.TimeoutExpired):
             result["decklink_input"] = False
+    if result.get("decklink_output"):
+        try:
+            probe = subprocess.run([deck_binary, "-hide_banner", "-h", "muxer=decklink"], capture_output=True, text=True, timeout=12)
+            result["decklink_caption_output"] = "spankvanc_caption_output" in probe.stdout + probe.stderr
+            result["decklink_scte_output"] = "spankvanc_scte_output" in probe.stdout + probe.stderr
+            from .ffmpeg_compat import discover_outputs
+            result["decklink_outputs"], result["decklink_output_error"] = discover_outputs(deck_binary)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
     if result.get("decklink_input"):
         try:
             probe = subprocess.run([deck_binary, "-hide_banner", "-h", "demuxer=decklink"], capture_output=True, text=True, timeout=12)
@@ -304,6 +327,18 @@ def doctor() -> dict:
                 result["caption_strip_filter"] = "A53_CC" in p.stdout+p.stderr
             except (OSError,subprocess.TimeoutExpired):
                 result["caption_strip_filter"] = False
+    from .whisper_runtime import probe as whisper_probe
+    result["whisper"] = whisper_probe()
+    for label, selected in (("general",binary),("decklink",deck_binary)):
+        try:
+            p=subprocess.run([selected,"-hide_banner","-h","filter=spankvanc_cc"],capture_output=True,text=True,timeout=12)
+            result["recaption_"+label] = "UTF-8 journal" in p.stdout+p.stderr and "continuous field-slotted" in p.stdout+p.stderr
+            if result["recaption_"+label]:
+                mux=subprocess.run([selected,"-hide_banner","-muxers"],capture_output=True,text=True,timeout=12)
+                result["recaption_"+label] = bool(re.search(r"\bf32le\b",mux.stdout+mux.stderr))
+        except (OSError,subprocess.TimeoutExpired):
+            result["recaption_"+label] = False
+    result["recaption_runtime"] = result["whisper"].get("available",False) and result.get("recaption_decklink",False)
     result["youtube_profiles"] = {}
     for label, selected in (("general", binary), ("decklink", deck_binary)):
         try:
@@ -374,7 +409,17 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
         if src["kind"] == kind == "file" and Path(src["address"]).resolve() == Path(out["address"]).resolve():
             blockers.append(f"{label}: output would overwrite the input")
         if kind == "decklink":
-            blockers.append(f"{label}: DeckLink ANC capture/playout adapter is not integrated yet")
+            if not cap.get("decklink_output"):
+                blockers.append(f"{label}: selected FFmpeg needs DeckLink output support")
+            ports = cap.get("decklink_outputs", [d for d in cap.get("decklink_devices", []) if d.get("output")])
+            if not any(d["name"] == out["address"] for d in ports):
+                blockers.append(f"{label}: choose an available DeckLink output port")
+            if src["kind"] == "decklink" and src["address"] == out["address"]:
+                blockers.append(f"{label}: choose a different port from the SDI input")
+            if out["captions"] in ("pass", "recaption") and not cap.get("decklink_caption_output"):
+                blockers.append(f"{label}: caption passthrough needs the extended VANC playout build")
+            if out["captions"] == "strip" and not cap.get("caption_strip_filter", cap.get("source_monitor", False)):
+                blockers.append(f"{label}: this FFmpeg lacks the A/53 caption stripping filter")
         if kind == "srt" and not cap.get("srt"):
             blockers.append(f"{label}: FFmpeg needs SRT support")
         if kind in ("rtmp", "youtube") and not cap.get("rtmp"):
@@ -382,9 +427,14 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
         if out["scte"] != "strip":
             if kind in ("rtmp", "youtube"):
                 blockers.append(f"{label}: this RTMP profile has no SCTE carriage; select Strip")
+            elif kind == "decklink":
+                if not cap.get("decklink_scte_output"):
+                    blockers.append(f"{label}: SCTE output needs the updated SCTE-104 playout engine")
+                elif out["scte"] == "pass" and "spankvanc_scte104" not in cap.get("decklink_options", []):
+                    blockers.append(f"{label}: SCTE-104 passthrough needs the updated ANC capture engine")
             elif not (src["kind"] == "decklink" and kind in ("udp", "srt", "file") and out["scte"] == "convert" and cap.get("scte_runtime")):
                 blockers.append(f"{label}: SCTE preservation/conversion needs the native ANC/TS adapter")
-        if cap.get("decklink_profile") == "compatibility":
+        if kind != "decklink" and cap.get("decklink_profile") == "compatibility":
             if out["captions"] == "pass" and not cap.get("caption_encoders", {}).get(codec):
                 blockers.append(f"{label}: this FFmpeg encoder does not expose A/53 caption pass; choose another encoder or Strip")
             if out["captions"] == "strip" and not cap.get("caption_strip_filter"):
@@ -392,7 +442,18 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
         if src["kind"] == "decklink" and out["scte"] == "convert" and src["scte_error_policy"] == "continue" and cap.get("scte_runtime") and not cap.get("scte_recovery"):
             blockers.append(f"{label}: capture FFmpeg needs the cue-recovery update for Continue A/V; choose Stop on rejected cue with an older build")
         if out["captions"] == "recaption":
-            blockers.append(f"{label}: timestamped audioWhisper and the A/V delay buffer are not integrated yet")
+            w=cap.get("whisper",{})
+            if not w.get("available"):
+                blockers.append(f"{label}: configure a Python installation with Whisper, PyTorch and NumPy")
+            if not cap.get("recaption_decklink"):
+                blockers.append(f"{label}: rebuild the selected engine with the live 608 replacement filter")
+            if cfg["whisper"]["device"]=="cuda" and not w.get("cuda"):
+                blockers.append(f"{label}: CUDA requested but unavailable in Whisper Python")
+            if w.get("models") and cfg["whisper"]["model"] not in w["models"]:
+                blockers.append(f"{label}: model unavailable in installed Whisper; choose a supported model")
+            if src["kind"]=="file" and not src["realtime"]:
+                blockers.append(f"{label}: live Whisper requires reading files at program speed")
+            notes.append(f"{label}: live CC1 two-row roll-up from routed audio channel {cfg['whisper']['audio_channel']}. Recognition and 608 transmission add latency; A/V is not delayed. Source captions are replaced only on this output.")
         video_label = video_codec_options(kind)[codec]
         outputs.append({"name": label, "transport": kind, "video_codec": codec,
                         "audio_codec": "pcm" if kind == "decklink" else "aac",
@@ -406,18 +467,20 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
             notes.append(f"{label}: YouTube SDR preset: 1920×1080 progressive, 30 fps, H.264 High, 14 Mbit/s CBR, two-second GOP, square pixels, AAC stereo 44.1 kHz / 128 kbit/s. Interlaced inputs are deinterlaced. Use an SDR Rec.709 source; HDR tone mapping is not implemented.")
             notes.append(f"{label}: enable Embedded 608/708 in YouTube Studio; one caption track")
     notes.append("TS and generic RTMP outputs use AAC-LC at 48 kHz / 192 kbit/s; YouTube uses stereo AAC-LC at 44.1 kHz / 128 kbit/s when source audio exists. TS carries AAC in ADTS; RTMP uses FLV AAC framing. SDI uses uncompressed video and PCM audio.")
+    if any(o["kind"] == "decklink" and o["scte"] != "strip" for o in active):
+        notes.append("SDI SCTE-104 pass preserves primary-stream packet bytes, frame association and VANC line, including fragments. TS → SDI conversion supports unencrypted program splice start/end/cancel, time_signal, splice_null and opaque descriptors. Select the SCTE-35 PID when it is not the first data stream. PTS is retained; pre-roll is rounded to milliseconds. Break duration must fit 0.1-second units and pre-roll must fit 65535 ms. Unsupported, late, encrypted, component and non-default-tier cues follow Continue/Stop policy. Conversion emits ST 2010 starting on VANC line 13 (following lines for fragments).")
     notes.append("Caption pass retains decoded A/53 608/708 data in the selected video codec; verify each source codec and receiving player.")
     notes.append("Strip removes embedded A/53 captions and excludes separate subtitle/data streams. Burned-in text remains part of the picture.")
     notes.append("SCTE Strip excludes separate data streams, including SCTE-35 PIDs. DeckLink → TS conversion supports program splice start/end/cancel, durations, auto-return, time_signal and raw descriptors with time_type 0. Rejected SCTE messages follow the selected continue/stop policy; arbitrary ANC routing is unavailable.")
     if src["kind"] == "decklink" and any(o["scte"] == "convert" for o in active):
         notes.append("Rejected or unsupported SCTE messages are discarded with a visible warning and saved diagnostic; A/V and later supported cues continue." if src["scte_error_policy"] == "continue" else "Strict SCTE mode stops the route on any rejected message.")
     return {"ready": not blockers, "blockers": list(dict.fromkeys(blockers)), "notes": notes,
-            "outputs": outputs, "command": [scrub(arg) for arg in command(cfg, cap)] if not blockers else []}
+            "outputs": outputs, "command": [scrub(arg) for arg in command(cfg, cap, "WHISPER_JOURNAL_AT_START")] if not blockers else []}
 
 
 def input_command(cfg: dict, *, monitor=False, capabilities=None) -> list[str]:
     src = cfg["input"]
-    args = [executable(src["kind"] == "decklink"), "-hide_banner", "-nostdin", "-n", "-loglevel", "info"]
+    args = [executable(src["kind"] == "decklink" or any(o["enabled"] and (o["kind"] == "decklink" or o["captions"] == "recaption") for o in cfg["outputs"])), "-hide_banner", "-nostdin", "-n", "-loglevel", "info"]
     if src["kind"] == "file" and src["realtime"]:
         args += ["-re"]
     if src["kind"] == "decklink":
@@ -441,17 +504,45 @@ def input_command(cfg: dict, *, monitor=False, capabilities=None) -> list[str]:
             args += ["-spankvanc_scte35", "1", "-xerror"]
             if "spankvanc_scte_strict" in options or capabilities is None:
                 args += ["-spankvanc_scte_strict", "1" if src["scte_error_policy"] == "stop" else "0"]
+    if src["kind"] == "decklink" and not monitor and any(o["enabled"] and o["kind"] == "decklink" and o["scte"] == "pass" for o in cfg["outputs"]):
+        args += ["-spankvanc_scte104", "1"]
+    if src["kind"] in ("udp", "srt", "file") and any(o["enabled"] and o["kind"] == "decklink" and o["scte"] == "convert" for o in cfg["outputs"]):
+        args += ["-copyts"]
     args += ["-i", src["address"]]
     return args
 
 
-def command(cfg: dict, capabilities=None) -> list[str]:
+def command(cfg: dict, capabilities=None, caption_journal=None) -> list[str]:
     src = cfg["input"]
     cap = capabilities or {}
     legacy = cap.get("decklink_profile") == "compatibility"
     args = input_command(cfg, capabilities=cap)
+    def replacement_filter():
+        if caption_journal is None:
+            raise ConfigError("Whisper output requires a running caption worker")
+        return "spankvanc_cc=journal="+str(Path(caption_journal).resolve()).encode("utf-8").hex()
     for out in cfg["outputs"]:
         if not out["enabled"]:
+            continue
+        if out["kind"] == "decklink":
+            args += ["-map", "0:v:0", "-map", "0:a:0?", "-map_metadata", "-1", "-map_chapters", "-1",
+                     "-c:v", "v210", "-pix_fmt", "yuv422p10le", "-c:a", "pcm_s16le", "-ar", "48000", "-ac", "2"]
+            if src["kind"] == "decklink" and src["format_code"] in ("Hi50", "Hi59", "Hi60", "ntsc", "pal "):
+                args += ["-field_order", "tt"]
+            if out["captions"] == "strip":
+                args += ["-vf", "sidedata=mode=delete:type=A53_CC"]
+            if out["captions"] == "recaption":
+                args += ["-vf", replacement_filter()]
+            if out["scte"] != "strip":
+                args += ["-fps_mode:v", "passthrough"]
+                args += ["-spankvanc_scte_output", "1" if out["scte"] == "pass" else "2"]
+                if out["scte"] == "convert":
+                    mapping=f"0:i:{src['scte_pid']}" if src.get("scte_pid") is not None else "0:d:0?"
+                    args += ["-map", mapping, "-c:d", "copy", "-avoid_negative_ts", "disabled",
+                             "-spankvanc_scte_output_strict", "1" if src["scte_error_policy"] == "stop" else "0"]
+            if out["captions"] in ("pass", "recaption"):
+                args += ["-spankvanc_caption_output", "1"]
+            args += ["-f", "decklink", out["address"]]
             continue
         args += ["-map", "0:v:0", "-map", "0:a:0?", "-map_metadata", "-1", "-map_chapters", "-1",
                  "-c:v", "mpeg2video" if out.get("video_codec") == "mpeg2video" else "libx264", "-threads:v", "4"]
@@ -459,10 +550,14 @@ def command(cfg: dict, capabilities=None) -> list[str]:
             args += ["-map", "0:d:0", "-c:d", "copy", "-avoid_negative_ts", "disabled"]
         youtube = out["kind"] == "youtube"
         if youtube:
+            # fps=30 already establishes the clock before caption insertion.
+            # A second CFR synchronizer can duplicate caption-bearing frames.
+            video_sync = (["-fps_mode:v", "passthrough"] if out["captions"]=="recaption" else
+                          ["-r:v", "30", "-fps_mode:v", "cfr"])
             args += ["-preset", "veryfast", "-profile:v", "high", "-level:v", "4.1",
                      "-b:v", "14M", "-minrate:v", "14M", "-maxrate:v", "14M", "-bufsize:v", "28M",
                      "-g", "60", "-keyint_min", "60", "-sc_threshold", "0", "-bf", "2", "-refs", "1",
-                     "-x264-params", "nal-hrd=cbr:force-cfr=1:cabac=1", "-r:v", "30", "-fps_mode:v", "cfr",
+                     "-x264-params", "nal-hrd=cbr:force-cfr=1:cabac=1", *video_sync,
                      "-enc_time_base:v", "1:30", "-field_order", "progressive",
                      "-color_primaries", "bt709", "-color_trc", "bt709", "-colorspace", "bt709", "-color_range", "tv"]
         elif out.get("video_codec") == "mpeg2video":
@@ -487,6 +582,8 @@ def command(cfg: dict, capabilities=None) -> list[str]:
         filters = [YOUTUBE_VIDEO_FILTER] if youtube else []
         if out["captions"] == "strip":
             filters.append("sidedata=mode=delete:type=A53_CC")
+        if out["captions"] == "recaption":
+            filters.append(replacement_filter())
         if filters:
             args += ["-vf", ",".join(filters)]
         if out["kind"] in ("rtmp", "youtube"):
@@ -494,6 +591,10 @@ def command(cfg: dict, capabilities=None) -> list[str]:
         else:
             args += ["-f", "mpegts", "-mpegts_flags", "-latm"]
         args += [out["address"]]
+    if any(o["enabled"] and o["captions"]=="recaption" for o in cfg["outputs"]):
+        channel=cfg["whisper"]["audio_channel"]-1
+        args += ["-map","0:a:0","-vn","-af",f"channelmap=map={channel}:channel_layout=mono","-ar","16000",
+                 "-c:a","pcm_f32le","-f","f32le","pipe:1"]
     return args
 
 
@@ -520,6 +621,7 @@ class Engine:
         self.logs = deque(maxlen=200)
         self.process = None
         self.monitor_process = None
+        self.whisper_process = None
         self.source_monitor = SourceMonitor()
         self.last_exit = None
         self.stop_requested = False
@@ -622,11 +724,34 @@ class Engine:
             self.logs.clear()
             self.last_exit = None
             self.stop_requested = False
-            process = subprocess.Popen(command(cfg, self.capabilities), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            worker=None;journal=None
+            if any(o["enabled"] and o["captions"]=="recaption" for o in cfg["outputs"]):
+                from .whisper_runtime import prepare
+                try:
+                    worker,journal=prepare(self.state_dir,cfg,self.logs.append,process_group_options())
+                except (OSError,RuntimeError) as exc:raise ConfigError(str(exc)) from exc
+            self.whisper_process=worker
+            try:
+                process = subprocess.Popen(command(cfg, self.capabilities,journal), stdout=worker.stdin if worker else subprocess.DEVNULL, stderr=subprocess.PIPE,
                                        text=True, errors="replace", stdin=subprocess.DEVNULL, **process_group_options())
+            except Exception:
+                if worker:worker.kill();worker.wait()
+                raise
+            if worker:
+                worker.stdin.close()
+            process._spank_whisper = worker
             self.process = process
+            if worker:
+                threading.Thread(target=self._watch_whisper,args=(worker,process),daemon=True).start()
             threading.Thread(target=self._read, args=(process,), daemon=True).start()
         return self.state()
+
+    def _watch_whisper(self,worker,route):
+        code=worker.wait()
+        if self.process is route and not self.stop_requested and (code != 0 or route.poll() is None):
+            self.logs.append(f"Whisper worker exited ({code}); stopping route to avoid silent caption loss")
+            if route.poll() is None:
+                terminate_process(route)
 
     def _save_rejection(self, record):
         # Bound persistent diagnostics to two 1 MiB files; never include route URLs.
@@ -645,7 +770,16 @@ class Engine:
         with process.stderr:
             for line in process.stderr:
                 with self.lock:
-                    if "SPANKVANC {" in line:
+                    if "SPANKVANC_SCTE_REJECT {" in line:
+                        try:
+                            record=json.loads(line.split("SPANKVANC_SCTE_REJECT ",1)[1])
+                            self.source_monitor.rejected += 1
+                            record["total"]=self.source_monitor.rejected
+                            self.source_monitor.rejections.append(record)
+                            self._save_rejection(record)
+                            self.logs.append("SCTE-35 → 104 cue rejected: " + scrub(record["reason"]))
+                        except (ValueError,TypeError,KeyError): self.logs.append("Invalid SCTE output rejection diagnostic")
+                    elif "SPANKVANC {" in line:
                         if process is (self.monitor_process if monitor else self.process):
                             try:
                                 event = json.loads(line[line.index("SPANKVANC ")+10:])
@@ -660,6 +794,11 @@ class Engine:
                     else:
                         self.logs.append(scrub(line.rstrip()))
         code = process.wait()
+        worker=getattr(process,"_spank_whisper",None)
+        if not monitor and worker and worker.poll() is None:
+            try:worker.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                worker.kill();worker.wait()
         with self.lock:
             if monitor:
                 self.logs.append(f"Source monitor exited with status {code}")

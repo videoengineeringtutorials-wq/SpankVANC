@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
 </head>
 <body>
-  <aside class="rail"><a class="mark" href="/" aria-label="SpankVANC home">S<span>V</span></a><span class="rail-label">SIGNAL CONTROL</span><span class="version">0.1</span></aside>
+  <aside class="rail"><a class="mark" href="/" aria-label="SpankVANC home">S<span>V</span></a><span class="rail-label">SIGNAL CONTROL</span><span class="version">0.9.1</span></aside>
   <div class="workspace">
     <header><div><div class="eyebrow">BROADCAST TOOLKIT / LOCAL CONTROL</div><h1>Spank<span>VANC</span><span class="preview">DEVELOPMENT PREVIEW</span></h1></div><div class="status"><span class="dot" id="state-dot"></span><span id="route-status">Connecting</span><span class="host">LOCAL ENGINE</span></div></header>
     <div class="toolbar"><div><span class="section-index">01</span><h2>Signal routing</h2><span class="subtle">One source. Independent output policies.</span></div><div class="actions"><button id="save">Save route</button><button id="validate">Check route</button><button class="primary" id="start">Start route <span>↗</span></button><button class="danger" id="stop" disabled>Stop</button></div></div>
@@ -20,19 +20,20 @@
         <div id="decklink-source" hidden>
           <label>Blackmagic input device<select id="decklink-device"></select></label>
           <label>SDI video mode<select id="decklink-mode"></select></label>
-          <label>SCTE error handling<select id="scte-error-policy"><option value="continue">Continue A/V · reject unsupported cues</option><option value="stop">Stop route on rejected cue · strict</option></select></label>
-          <p class="subtle">Continue mode discards rejected cue messages and shows a warning; it does not preserve those cues.</p>
           <button id="refresh-devices" class="small" type="button">Refresh devices</button>
           <p class="subtle" id="decklink-info"></p>
         </div>
+          <label>SCTE error handling<select id="scte-error-policy"><option value="continue">Continue A/V · reject unsupported cues</option><option value="stop">Stop route on rejected cue · strict</option></select></label>
+          <p class="subtle">Continue mode discards rejected cue messages and shows a warning; it does not preserve those cues.</p>
+        <label id="scte-pid-label">SCTE-35 PID · TS inputs, optional<input id="scte-pid" placeholder="Auto · first data stream, or 0x1FFE" spellcheck="false"></label>
         <label class="check"><input type="checkbox" id="input-realtime">Read test files at program speed</label>
         <div class="signal-path"><span>VIDEO</span><i></i><span>AUDIO</span><i></i><span>ANC</span></div>
-        <div class="source-note" id="source-capability-note">DeckLink input captures SDI video, embedded stereo audio and captions. Choose the mode matching your source. Program SCTE-104 cues can convert to SCTE-35 for TS outputs. SDI output remains unavailable.</div>
+        <div class="source-note" id="source-capability-note">DeckLink input captures SDI video, embedded stereo audio and captions. Choose the mode matching your source. Program SCTE-104 cues can convert to SCTE-35 for TS outputs. SDI output supports caption pass/strip, SCTE-104 pass and TS SCTE-35 conversion with the updated local engine.</div>
       </section>
       <section class="panel outputs"><div class="panel-title"><div><span class="eyebrow">DESTINATIONS</span><h3>Program outputs</h3></div><button id="add-output" class="small">+ Add output</button></div><div id="outputs"></div><div class="output-legend"><span class="dot lime"></span>Caption and SCTE policies are applied separately to every output.</div></section>
       <section class="panel tools"><div class="panel-title"><div><span class="eyebrow">PROCESSING</span><h3>Caption & trigger tools</h3></div></div>
-        <div class="tool-heading"><h4>audioWhisper recaptioning</h4><span class="tag pending">INTEGRATION PENDING</span></div><p class="subtle">Replace source captions with speech recognition from the program audio.</p>
-        <div class="form-grid"><label>Model<select id="whisper-model"><option>tiny.en</option><option>base.en</option><option>small.en</option><option>medium.en</option><option>large-v3</option><option>turbo</option></select></label><label>Language<input id="whisper-language" maxlength="3"></label><label>Program delay · ms<input id="whisper-delay" type="number" min="0" max="60000" step="500"></label><label>Audio channel<input id="whisper-channel" type="number" min="1" max="64"></label></div>
+        <div class="tool-heading"><h4>audioWhisper recaptioning</h4><span class="tag">LIVE CC1</span></div><p class="subtle">Replace source captions with two-row CEA-608 CC1 captions from routed program audio. No OBS or microphone selection needed. Recognition adds caption lag; program A/V is not delayed.</p>
+        <div class="form-grid"><label>Model<select id="whisper-model"><option>tiny</option><option>tiny.en</option><option>base</option><option>base.en</option><option>small</option><option>small.en</option><option>medium</option><option>medium.en</option><option>large-v3</option><option>turbo</option></select></label><label>Language<input id="whisper-language" maxlength="3"></label><label>Whisper processing<select id="whisper-device"><option value="auto">Auto · CUDA when available</option><option value="cpu">CPU</option><option value="cuda">GPU · CUDA required</option></select></label><label>Audio channel<input id="whisper-channel" type="number" min="1" max="2"></label></div>
         <div class="divider"></div><div class="tool-heading"><h4>SCTE → serial GPO</h4><span class="tag pending">INTEGRATION PENDING</span></div><p class="subtle">Map decoded cues to ESP32 / ESP8266 output pulses.</p><label class="check"><input type="checkbox" id="gpo-enabled">Enable serial trigger output</label>
         <div class="form-grid"><label>Serial port<input id="gpo-port" placeholder="/dev/ttyUSB0 or COM3"></label><label>Baud rate<input value="115200" readonly></label><label>Output channel<input id="gpo-channel" type="number" min="1" max="4"></label><label>Pulse length · ms<input id="gpo-pulse" type="number" min="10" max="10000"></label></div>
       </section>
@@ -45,7 +46,7 @@
         <pre id="caption-screen" class="caption-screen" aria-live="off">Start the source monitor or a DeckLink route to view incoming captions.</pre>
         <p class="subtle" id="cue-counts">SCTE-104: 0 packets · Converted: 0</p>
         <p class="subtle">Shows incoming CEA-608 text, independent of output Pass/Strip. CC1–CC4 are selectable. Native 708 packets are counted; 708 service text rendering is not supported yet. Standalone monitoring captures locally without sending an output.</p>
-        <details><summary>Rejected SCTE-104 messages</summary><pre id="scte-rejections" class="caption-history">No rejected messages.</pre><p class="subtle">Saved under runtime/scte-rejections.ndjson. Includes rejected ANC bytes for diagnosis; stream destinations are excluded.</p></details>
+        <details><summary>Rejected SCTE messages</summary><pre id="scte-rejections" class="caption-history">No rejected messages.</pre><p class="subtle">Saved under runtime/scte-rejections.ndjson. Includes rejected ANC bytes for diagnosis; stream destinations are excluded.</p></details>
         <details><summary>Recent caption text</summary><pre id="caption-history" class="caption-history">No decoded text yet.</pre></details>
       </section>
     </main>

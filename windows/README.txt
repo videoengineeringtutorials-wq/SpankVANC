@@ -1,7 +1,8 @@
-SpankVANC 0.6.1 — Windows 11 x64 app
+SpankVANC 0.9.1 — Windows 11 x64 app
 
-START HERE: double-click Setup Guide.url to open the online guide.
-The offline copy is docs\WINDOWS_BEGINNER.md is the complete PC-and-card setup guide.
+START HERE: double-click START HERE.html for the included quick-start page.
+Setup Guide.url opens the complete online guide.
+The offline text copy, docs\WINDOWS_BEGINNER.md, covers the full PC-and-card setup.
 It includes the AnimMouse FFmpeg download link and explains basic vs extended features.
 
 1. Extract this entire ZIP into a NEW writable folder.
@@ -35,9 +36,28 @@ do not upload settings.json, runtime\route.json or recordings to GitHub.
 Read docs\SETUP.md for installation, upgrades and troubleshooting,
 docs\WINDOWS_EXTENDED_BUILD.md for the advanced local build,
 and docs\REDISTRIBUTION.md plus THIRD_PARTY_NOTICES.md for dependency licenses.
-SDI output, Whisper recaptioning and serial dispatch are not integrated.
+SDI output supports selectable output ports and caption pass/strip after rebuilding
+the local Extended engine with current 0.9.1 build support. Configure the output connector in Desktop
+Video Setup, select DeckLink SDI as the output, choose its port, and set SCTE Strip.
+Whisper CC1 replacement is available with a separate Whisper/PyTorch Python.
+See docs\WHISPER.md for installation from scratch. Serial dispatch is not integrated.
 
 Build Extended Capture.cmd automates a local extended engine build after
 Ubuntu 24.04/WSL and user-supplied SDK 12.8 setup. Follow the beginner guide
 first. It downloads build dependencies, compiles locally and saves the new path;
 it does not install card drivers or upload build results.
+
+SCTE update (0.8.0): SDI outputs can Pass SCTE-104 from SDI input, or Convert
+35 → 104 from a TS input. See docs/SDI_SCTE.md for PID selection, timing and
+Continue/Stop behavior. Rebuild the local engine before enabling these choices.
+
+Whisper update (0.9.0): select audioWhisper replacement per output, then
+Auto, CPU or CUDA. Set whisper_python_path in settings.json to an existing
+Python with Whisper/PyTorch. Rebuild with current build support. Routed audio
+is used directly; no OBS or microphone selection is needed. Caption recognition
+adds lag; A/V is not delayed. See docs/WHISPER.md.
+
+0.9.1 fixes generated 608 framing, receiver initialization and word wrapping.
+Rebuild the local engine with current support and restart the app. Passthrough
+is unchanged. Generated SDI captions have a user-reported Leader receiver test; detection alone
+does not establish correctly rendered caption text.

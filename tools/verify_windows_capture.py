@@ -24,7 +24,7 @@ def win(args):return run([a.wine,a.ffmpeg,*args])
 version=win(['-version']);options=win(['-hide_banner','-h','demuxer=decklink']);devices=win(['-hide_banner','-devices']);protocols=win(['-hide_banner','-protocols'])
 assert '7.0.2' in version and 'SDK12.8' in version
 assert all(name in options for name in ('spankvanc_anc','spankvanc_scte35','spankvanc_scte_strict'))
-assert re.search(r'^\s*D\s+decklink\s',devices,re.M)
+assert re.search(r'^\s*D[E ]*\s+decklink\s',devices,re.M)
 for protocol in ('udp','srt','rtmp','rtmps','tls'):assert protocol in protocols.split()
 (a.output_dir/'version.txt').write_text(version);(a.output_dir/'decklink-options.txt').write_text(options)
 # The SAME portable decoder header is compiled as an actual Windows executable.

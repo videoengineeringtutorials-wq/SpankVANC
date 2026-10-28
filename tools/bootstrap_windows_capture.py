@@ -11,7 +11,7 @@ SOURCES={
  'srt-1.5.4.tar.gz':('https://github.com/Haivision/srt/archive/refs/tags/v1.5.4.tar.gz','d0a8b600fe1b4eaaf6277530e3cfc8f15b8ce4035f16af4a5eb5d4b123640cdd','srt-1.5.4')}
 X264_REV='0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee'
 PACKAGES=['build-essential','git','curl','xz-utils','cmake','pkg-config','nasm','perl','python3',
- 'gcc-mingw-w64-x86-64-posix','g++-mingw-w64-x86-64-posix','binutils-mingw-w64-x86-64','mingw-w64-tools']
+ 'autoconf','automake','libtool','gcc-mingw-w64-x86-64-posix','g++-mingw-w64-x86-64-posix','binutils-mingw-w64-x86-64','mingw-w64-tools']
 
 def sdk_version(include):
  text=(include/'DeckLinkAPIVersion.h').read_text(errors='replace')
@@ -44,7 +44,7 @@ def main(argv=None):
   subprocess.run(['sudo','-v'],check=True)
   subprocess.run(['sudo','apt-get','update'],check=True)
   subprocess.run(['sudo','apt-get','install','-y',*PACKAGES],check=True)
- required=['git','curl','cmake','pkg-config','nasm','perl','make','x86_64-w64-mingw32-gcc','x86_64-w64-mingw32-g++','x86_64-w64-mingw32-windres']
+ required=['autoconf','automake','libtoolize','git','curl','cmake','pkg-config','nasm','perl','make','x86_64-w64-mingw32-gcc','x86_64-w64-mingw32-g++','x86_64-w64-mingw32-windres']
  missing=[name for name in required if not shutil.which(name)]
  widl=shutil.which('x86_64-w64-mingw32-widl') or shutil.which('widl')
  if (sdk/'DeckLinkAPI.idl').exists() and not widl:missing.append('mingw-w64-tools (widl)')
@@ -88,6 +88,15 @@ def main(argv=None):
    if not (idl/'unknwn.idl').is_file():raise RuntimeError('Wine IDL import unknwn.idl is missing after extraction.')
   run([widl,'--win64','-I'+str(idl),'-h','-u','DeckLinkAPI.idl'],include)
  for name in SOURCES:fetch(name,build,run)
+ klvanc=build/'libklvanc'
+ if not (deps/'lib/libklvanc.a').exists():
+  if not klvanc.exists():run(['git','clone','https://github.com/stoth68000/libklvanc.git',klvanc])
+  run(['git','checkout','--detach','d6915e37067ef9680ef27bb8c12cb6bd743471d2'],klvanc)
+  for header in (klvanc/'src').rglob('*.h'):
+   header.write_text(header.read_text().replace('<sys/errno.h>','<errno.h>'))
+  run(['./autogen.sh','--build'],klvanc)
+  run(['./configure','--host=x86_64-w64-mingw32','--prefix='+str(deps),'--disable-shared','--enable-static'],klvanc)
+  run(['make','-C','src','-j4'],klvanc);run(['make','-C','src','install'],klvanc)
  x264=build/'x264'
  if not x264.exists():run(['git','clone','https://code.videolan.org/videolan/x264.git',x264])
  run(['git','checkout','--detach',X264_REV],x264)

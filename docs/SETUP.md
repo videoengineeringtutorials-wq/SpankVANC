@@ -64,7 +64,17 @@ new deinterlace/scale filters; preflight explains when this is missing.
 
 Python 3.11+ is sufficient for the app; it has no third-party Python runtime
 dependencies. On Ubuntu, install Python and FFmpeg using your package manager,
-then from this checkout run:
+then obtain and enter the source checkout. On Ubuntu:
+
+```bash
+sudo apt update
+sudo apt install python3 ffmpeg git
+git clone https://github.com/videoengineeringtutorials-wq/SpankVANC.git
+cd SpankVANC
+```
+
+Alternatively, extract the release source ZIP and open a terminal in its
+`SpankVANC` folder. Run:
 
 ```bash
 python3 -m spankvanc doctor

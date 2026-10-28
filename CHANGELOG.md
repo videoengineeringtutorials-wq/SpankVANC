@@ -1,5 +1,57 @@
 # Changelog
 
+## 0.9.1 — generated-caption framing and receiver initialization
+
+- Publish the 0.7–0.9 SDI playout, SCTE and Whisper updates together with a
+  first-time Windows installation guide and browser-readable START HERE.html
+  in the portable package. Clarify basic versus extended engine requirements,
+  WSL 1 fallback, fresh Whisper setup and safe upgrade steps.
+- Record the user's Leader SDI caption confirmation; YouTube generated-caption
+  reception and physical SCTE receiver checks remain pending.
+
+- Fix sparse replacement payloads: emit continuous frame-rate-specific A/53
+  field slots and padding for encoded video and the SDI CDP/VANC builder.
+- Reassert CC1 roll-up, explicit row-15 indent zero and row clearing for each
+  generated line, including late-joining receivers.
+- Wrap ordinary words intact at 32 columns; split only a token longer than a
+  full row, preserving every character.
+- Keep the YouTube FPS filter as the sole frame-rate conversion for replacement
+  mode, preventing a later CFR sync stage from duplicating caption-bearing frames.
+- Leave caption passthrough and its output synchronization unchanged.
+- Gate replacement against the corrected local engine. Receiver detection alone
+  and software text decoding were insufficient tests of the 0.9.0 framing.
+
+## 0.9.0 — local Whisper caption replacement
+
+- Select audioWhisper replacement independently on SDI and TS outputs.
+- Read the selected embedded audio channel from the single routed capture;
+  OBS, Windows microphone selection and serial encoders are not required.
+- Run an isolated worker using an existing Whisper/PyTorch Python, with
+  Auto/CPU/CUDA selection. Legacy audioWhisper projects remain untouched.
+- Insert paced odd-parity CC1 two-row roll-up data through A/53 and SDI CDPs.
+  Replace source 608/708 only on selected outputs; retain SCTE policies.
+- Caption recognition adds latency; no program A/V delay is implemented.
+  Remove the misleading delay control, retaining the old field for migration.
+- Require a rebuilt local engine with the replacement filter and raw PCM tap.
+
+## 0.8.0 — SDI SCTE output
+
+- Pass SCTE-104 primary-stream ANC bytes, original frame/line and ST 2010 fragments from SDI input to selected SDI outputs independently of captions.
+- Convert TS SCTE-35 program splice start/end/cancel, time_signal, splice_null and descriptors into SCTE-104 VANC.
+- Preserve the TS clock and PTS adjustment/wrap, calculate per-frame pre-roll, suppress repeated sections, and report unsupported/late cues with Continue/Stop controls.
+- Add optional SCTE-35 PID selection and enable SCTE policies only when the selected engine supports them.
+- Keep prior engines and saved routes when installing the local update.
+- Verification: 64 Python tests, browser control/persistence checks and native Windows codec/VANC checks passed; physical SCTE receiver acceptance is pending.
+
+## 0.7.0 — SDI caption output
+
+- Select detected DeckLink output ports and play uncompressed V210/PCM SDI.
+- Pass decoded 608/708 captions into regenerated SDI VANC CDPs, or strip captions per output.
+- Local Windows build now includes pinned libklvanc and caption-preserving V210 encoding.
+- Requires a rebuilt local engine; Windows/Duo hardware validation remains pending.
+- Fix DeckLink context layout, prefer decoder-free output discovery, and harden the Windows WSL launcher and playout verification.
+- Verified native Windows engine execution, device discovery and pass/strip preflight with Ubuntu 24.04 under WSL 1.
+
 ## 0.6.1 — guided Windows setup and local build
 
 - Full PC-and-Blackmagic-card beginner guide with the user-suggested AnimMouse

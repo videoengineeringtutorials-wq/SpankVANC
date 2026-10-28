@@ -1,0 +1,51 @@
+{
+  "application": "SpankVANC",
+  "version": "0.9.0",
+  "date": "2026-10-28",
+  "platform": "Windows 11 x64",
+  "local_engine": "FFmpeg 7.0.2 / DeckLink SDK 12.8 / libklvanc",
+  "python_tests_passed": 70,
+  "browser_policy_and_cuda_model_channel_persistence": true,
+  "whisper_gpu": {
+    "device": "Quadro P6000",
+    "model": "turbo",
+    "speech_transcription_passed": true,
+    "caption_pairs": 89
+  },
+  "whisper_cpu": {
+    "model": "small",
+    "speech_transcription_passed": true,
+    "caption_pairs": 34
+  },
+  "native_filter_checks": [
+    "25/60 fps pacing",
+    "EOF followed by journal append",
+    "upstream source caption isolation",
+    "unrelated frame metadata retention"
+  ],
+  "ts_route_exit": 0,
+  "ts_outputs": {
+    "h264-recaption": {
+      "frames": 749,
+      "captioned_frames": 91
+    },
+    "mpeg2video-recaption": {
+      "frames": 749,
+      "captioned_frames": 91
+    },
+    "h264-strip": {
+      "frames": 749,
+      "captioned_frames": 0
+    }
+  },
+  "h264_and_mpeg2_caption_text_independently_decoded": true,
+  "sdi_recaption_with_scte_pass_preflight": true,
+  "native_v210_scte_and_vanc_regression_checks": true,
+  "legacy_audioWhisper_modified": false,
+  "physical_sdi_caption_receiver_verified": false,
+  "av_delay_implemented": false,
+  "user_stop_cleans_worker": true,
+  "worker_failure_stops_route": true,
+  "worker_failure_reported_if_pipe_fails_first": true,
+  "missing_audio_channel_rejected": true
+}

@@ -39,10 +39,26 @@ class LocalBuildTests(unittest.TestCase):
  def test_wsl_path_passes_spaces_as_one_argument_without_shell(self):
   with mock.patch.object(windows.subprocess,'check_output',return_value='/mnt/c/SDK files/Win/include\n') as query:
    self.assertEqual(windows.wsl_path('C:\\SDK files\\Win\\include'),'/mnt/c/SDK files/Win/include')
-   self.assertEqual(query.call_args.args[0][-1],'C:\\SDK files\\Win\\include')
+   self.assertEqual(query.call_args.args[0][-1],'C:/SDK files/Win/include')
    self.assertNotIn('shell',query.call_args.kwargs)
 
  def test_unpatched_executable_does_not_pass_extended_verification(self):
   result=mock.Mock(returncode=0,stdout='stock FFmpeg',stderr='')
   with mock.patch.object(windows.subprocess,'run',return_value=result):
    with self.assertRaisesRegex(ValueError,'Extended DeckLink options'):windows.verify_capture(Path('ffmpeg.exe'))
+
+class WindowsEngineDiscoveryTests(unittest.TestCase):
+ def test_prefer_installed_wsl_when_system_launcher_is_broken(self):
+  with mock.patch.object(windows.Path,'is_file',return_value=True):
+   self.assertEqual(Path(windows.wsl_executable()).parts[-2:],('WSL','wsl.exe'))
+  with mock.patch.object(windows.Path,'is_file',return_value=False):
+   self.assertEqual(windows.wsl_executable(),'wsl.exe')
+
+ def test_capture_only_engine_is_rejected_before_saving(self):
+  def query(args,**kwargs):
+   text = ('spankvanc_anc spankvanc_scte35 spankvanc_scte_strict' if 'demuxer=decklink' in args
+           else 'old output build' if 'muxer=decklink' in args else 'version')
+   return mock.Mock(returncode=0,stdout=text,stderr='')
+  with mock.patch.object(windows.subprocess,'run',side_effect=query):
+   with self.assertRaisesRegex(ValueError,'VANC caption playout is missing'):
+    windows.verify_capture(Path('ffmpeg.exe'))

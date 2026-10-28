@@ -18,3 +18,12 @@ runtimes and development tools are separate dependencies, not bundled in the
 public app package. Their licenses are described in
 [the redistribution audit](docs/REDISTRIBUTION.md). Their upstream licenses
 apply when obtaining, building or distributing them separately.
+
+Local SDI playout builds use [libklvanc](https://github.com/stoth68000/libklvanc),
+pinned to d6915e37067ef9680ef27bb8c12cb6bd743471d2, under LGPL-2.1.
+Source and license remain in the local build directory. It is not bundled in
+the app-only distribution.
+
+Whisper replacement runs an optional, separately installed OpenAI Whisper
+(MIT) and PyTorch runtime; these dependencies and model weights are not bundled.
+The legacy audioWhisper/serial encoder scripts are neither modified nor bundled.

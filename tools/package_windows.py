@@ -43,17 +43,23 @@ for path in sorted((ROOT/'spankvanc').rglob('*')):
         files['app/'+path.relative_to(ROOT).as_posix()]=path.read_bytes()
 files['app/windows_launcher.py']=(ROOT/'windows/launcher.py').read_bytes()
 files['app/windows_build_capture.py']=(ROOT/'windows/build_capture.py').read_bytes()
-for name in ('Start SpankVANC.cmd','Configure FFmpeg.cmd','Diagnostics.cmd','Build Extended Capture.cmd','Setup Guide.url','README.txt'):
+for name in ('Start SpankVANC.cmd','Configure FFmpeg.cmd','Diagnostics.cmd','Build Extended Capture.cmd','Setup Guide.url','START HERE.html','README.txt'):
     data=(ROOT/'windows'/name).read_bytes()
     if name.endswith('.cmd'):assert b'\r\n' in data and b'python.exe' in data
     files[name]=data
-for name in ('bootstrap_windows_capture.py','build_windows_capture.sh','patch_ffmpeg_decklink.py','patch_ffmpeg_monitor_scte.py'):
+for name in ('bootstrap_windows_capture.py','build_windows_capture.sh','patch_ffmpeg_decklink.py','patch_ffmpeg_monitor_scte.py','patch_ffmpeg_playout.py','patch_ffmpeg_scte_output.py','patch_ffmpeg_whisper.py'):
     files['build-support/tools/'+name]=(ROOT/'tools'/name).read_bytes()
+files['build-support/native/vf_spankvanc_cc.c']=(ROOT/'native/vf_spankvanc_cc.c').read_bytes()
 files['build-support/native/scte104.hpp']=(ROOT/'native/scte104.hpp').read_bytes()
+files['build-support/native/scte35_to104.hpp']=(ROOT/'native/scte35_to104.hpp').read_bytes()
+files['build-support/native/scte_vanc.hpp']=(ROOT/'native/scte_vanc.hpp').read_bytes()
 files['build-support/windows/mingw-toolchain.cmake']=(ROOT/'windows/mingw-toolchain.cmake').read_bytes()
 files['ffmpeg/README.txt']=(ROOT/'windows/ffmpeg-README.txt').read_bytes()
 for path in sorted((ROOT/'docs').glob('*.md')):
     if path.name != 'WORKSTATION_HANDOFF.md':files['docs/'+path.name]=path.read_bytes()
+for path in sorted((ROOT/'docs/verification').glob('*.json')):
+    files['docs/verification/'+path.name]=path.read_bytes()
+files['AGENTS.md']=(ROOT/'AGENTS.md').read_bytes()
 files['CHANGELOG.md']=(ROOT/'CHANGELOG.md').read_bytes()
 files['THIRD_PARTY_NOTICES.md']=(ROOT/'THIRD_PARTY_NOTICES.md').read_bytes()
 
@@ -63,7 +69,7 @@ manifest={'application':'SpankVANC','package':'Windows 11 x64 app only','app_ver
           'ffmpeg':'User-provided; not bundled','gpu_encoding':False,'windows_hardware_verified':False,
           'feature_limits':['FFmpeg and Desktop Video must be supplied separately',
                             'Extended caption monitoring and SCTE conversion require a local patched FFmpeg build',
-                            'No SDI playout, Whisper or serial dispatch'],
+                            'SDI captions require a local VANC playout build; Whisper requires a separate Python with PyTorch; no serial dispatch'],
           'files':{name:hashlib.sha256(data).hexdigest() for name,data in sorted(files.items())}}
 files['PACKAGE.json']=(json.dumps(manifest,indent=2)+'\n').encode()
 a.output.parent.mkdir(parents=True,exist_ok=True)

@@ -1,0 +1,81 @@
+{
+  "application": "SpankVANC",
+  "version": "0.9.1",
+  "date": "2026-10-28",
+  "receiver_report_0_9_0": {
+    "sdi_leader": "608 detected; generated text not displayed",
+    "youtube": "captions detected; isolated characters rendered",
+    "passthrough": "user reports working on both"
+  },
+  "identified_defects": [
+    "sparse one-tuple A/53 instead of continuous frame-rate budget and field slots",
+    "roll-up/row initialization sent only once",
+    "YouTube secondary CFR sync duplicated a caption-bearing startup frame"
+  ],
+  "repairs": [
+    "continuous field-slotted A/53 with null field-2 and invalid 708 padding",
+    "per-line CC1 RU2, row-15 explicit indent zero, destination row clear",
+    "single FPS conversion before replacement caption insertion in YouTube profile",
+    "word-boundary wrapping without character truncation"
+  ],
+  "python_tests_passed": 73,
+  "browser_persistence_checks_passed": true,
+  "encoded_video_checks": {
+    "h264.ts": {
+      "frames": 749,
+      "continuous_20_tuple_payload": true,
+      "journal_pairs_preserved": 210,
+      "strip": false
+    },
+    "mpeg2.ts": {
+      "frames": 749,
+      "continuous_20_tuple_payload": true,
+      "journal_pairs_preserved": 210,
+      "strip": false
+    },
+    "youtube.flv": {
+      "frames": 749,
+      "continuous_20_tuple_payload": true,
+      "journal_pairs_preserved": 210,
+      "strip": false
+    },
+    "strip.ts": {
+      "frames": 749,
+      "continuous_20_tuple_payload": false,
+      "journal_pairs_preserved": 0,
+      "strip": true
+    }
+  },
+  "word_boundaries_and_32_column_rows_independently_decoded": true,
+  "youtube_profile_late_join_independently_decoded": true,
+  "youtube_profile_test_was_local_flv_not_service_transmission": true,
+  "native_v210_cdp_vanc_checks": {
+    "rates": [
+      "24000/1001",
+      "24/1",
+      "25/1",
+      "30000/1001",
+      "30/1",
+      "50/1",
+      "60000/1001",
+      "60/1"
+    ],
+    "continuous_tuple_budgets": true,
+    "field_slots": true,
+    "parity": true,
+    "cdp_and_vanc_checksums": true,
+    "source_isolation": true,
+    "partial_journal_append": true
+  },
+  "legacy_audioWhisper_modified": false,
+  "caption_passthrough_path_modified": false,
+  "av_delay_added": false,
+  "leader_retest_pending": false,
+  "youtube_service_retest_pending": true,
+  "framing_reference": "https://github.com/FFmpeg/FFmpeg/blob/n7.0.2/libavfilter/ccfifo.c",
+  "leader_sdi_user_report": {
+    "date": "2026-10-28",
+    "result": "User reports Leader saw captions on SDI after the 0.9.1 update",
+    "evidence": "User report; no scope capture or full receiver matrix recorded"
+  }
+}

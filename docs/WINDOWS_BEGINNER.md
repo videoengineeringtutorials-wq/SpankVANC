@@ -11,10 +11,10 @@ Use a spare/test route first. This project is experimental.
 | --- | --- | --- |
 | Blackmagic Desktop Video for Windows | [Blackmagic support → Capture and Playback](https://www.blackmagicdesign.com/support/family/capture-and-playback) | Driver and device setup utility; required for the card |
 | SpankVANC Windows x64 App ZIP | [SpankVANC Releases](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases) | Browser control app and bundled Python |
-| A separately supplied DeckLink-enabled FFmpeg | [Your suggested AnimMouse release page](https://github.com/AnimMouse/ffmpeg-stable-autobuild/releases) | Basic capture and encoding; see limitations below |
+| A separately supplied DeckLink-enabled FFmpeg | [AnimMouse release page](https://github.com/AnimMouse/ffmpeg-stable-autobuild/releases) | Basic capture and encoding; see limitations below |
 | 7-Zip x64, if needed to open `.7z` | [Official 7-Zip site](https://www.7-zip.org/) | Extract the FFmpeg archive |
 | DeckLink SDK **12.8** | Blackmagic SDK download/support archive | Only needed for the local extended build in Part B |
-| Ubuntu 24.04 in WSL2 | Installed with Windows' `wsl` command | Only needed for the local extended build in Part B |
+| Ubuntu 24.04 in WSL | Installed with Windows' `wsl` command | Only needed for the local extended build in Part B |
 
 Desktop Video (driver) and Desktop Video/DeckLink SDK (developer files) are
 **different downloads**. Installing the SDK does not install the card driver.
@@ -28,14 +28,15 @@ exists. The original Duo development/test system used Desktop Video 12.8.
 | --- | --- |
 | Get video/audio into a recording, UDP/SRT or YouTube quickly | **Part A:** separately downloaded FFmpeg, no compilation |
 | Also display incoming caption text live and convert SCTE-104 to SCTE-35 | **Part A, then Part B:** local SpankVANC extended build |
+| SDI output with captions, SDI SCTE-104 pass, or TS SCTE-35 → SDI SCTE-104 | **Part A, then Part B**; select the output connector in Desktop Video Setup |
+| Generate new CC1 captions from program audio | **Part A, Part B, then [Whisper setup](WHISPER.md#windows-installation-from-scratch)** |
 
 The AnimMouse project says its static Windows builds include DeckLink and FDK
 AAC. Downloading a stock build **does not add SpankVANC's extensions**. Basic
 caption pass/strip depends on that build and your source; verify at a receiver.
 The live source monitor/SCTE conversion will be unavailable until Part B is done.
 
-AnimMouse describes these as **nonfree** builds. The link is an optional source
-you supplied, not a redistribution clearance. Review that project's notices
+AnimMouse describes these as **nonfree** builds. The link is an optional third-party source, not a redistribution clearance. Review that project's notices
 and applicable terms yourself. We do not mirror, bundle or automatically
 redistribute its archives. See [our license audit](REDISTRIBUTION.md).
 
@@ -88,7 +89,8 @@ below is pinned separately to 7.0.2 and SDK 12.8.
    `-Algorithm SHA256`. Compare the resulting hash with that file.
 3. Right-click the ZIP → **Extract All** into a new writable folder, for example
    `Documents\SpankVANC`. Enter the extracted `SpankVANC-Windows` folder.
-4. **Setup Guide.url** opens this guide in your browser. Double-click
+4. **START HERE.html** opens the included quick-start page in your browser.
+   **Setup Guide.url** opens the full online guide. Double-click
    **Start SpankVANC.cmd** to launch the app. If Windows warns about downloaded
    software, verify the release origin/checksum before choosing to run it.
 5. When asked for FFmpeg, drag the actual **ffmpeg.exe** from Explorer into the
@@ -139,10 +141,11 @@ GitHub account, GitHub Actions runner or cloud build is required.
 
 You need administrator access for WSL installation, Internet access, several GB
 of free storage and time for compilation (potentially an hour or more on a slow
-PC). The guided launcher is new; the Linux cross-build core has been exercised,
-but a clean physical Windows/WSL installation still needs a user walkthrough.
+PC). The engine has been built on a Windows 11 workstation using Ubuntu 24.04
+under WSL 1. The helper and prerequisite checks have automated coverage; a
+complete beginner walkthrough on a fresh PC remains to be verified.
 
-### 1. Install Ubuntu 24.04 in WSL2
+### 1. Install Ubuntu 24.04 in WSL
 
 1. Right-click Start → **Terminal (Admin)** or **Windows PowerShell (Admin)**.
 2. Enter:
@@ -156,6 +159,14 @@ but a clean physical Windows/WSL installation still needs a user walkthrough.
    for Ubuntu build-package installation; typing it may show no characters.
 5. Close Ubuntu when initialization finishes. If WSL reports virtualization is
    unavailable, follow [Microsoft's WSL installation/troubleshooting guidance](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+The normal install uses WSL 2. WSL 1 also completed the local engine build on
+the test workstation. If firmware virtualization is unavailable, consult
+[Microsoft’s WSL manual installation guide](https://learn.microsoft.com/en-us/windows/wsl/install-manual)
+to enable Windows Subsystem for Linux, restart, then run `wsl --set-default-version 1`
+before installing Ubuntu. For an existing initialized distro,
+`wsl --set-version Ubuntu-24.04 1` converts it; back up its files first.
+`wsl --list --verbose` shows the installed distro and version.
 
 WSL/Ubuntu must be installed before launching the helper. An unsupported ARM PC
 or managed Windows policy may need separate setup; this guide targets x64.
@@ -176,7 +187,7 @@ newer cards requiring newer drivers/SDKs need separate compatibility work.
 
 ### 3. Double-click Build Extended Capture.cmd
 
-1. Use the **0.6.1 or later Windows App ZIP**, which includes the build helper
+1. Use the **0.9.1 Windows App ZIP**, which includes the build helper
    and source support files. You do not need system Python, Git or Visual Studio.
 2. Double-click **Build Extended Capture.cmd** in the extracted app folder.
 3. Drag the SDK's **Win\include** folder into the console and press Enter.
@@ -221,8 +232,14 @@ building. See [advanced build details](WINDOWS_EXTENDED_BUILD.md).
   cues are discarded and retained as diagnostics; they are not silently preserved.
 - Use a known SCTE source and downstream analyzer to verify PMT references,
   section CRC, event IDs and cue timing. YouTube has no SCTE carriage here.
-- This does not enable unfinished SDI playout, Whisper replacement or serial
-  GPO dispatch. Keep them disabled.
+- For SDI output, build with the current 0.9.1 support files, choose **DeckLink · SDI**,
+  select the detected output port, choose caption **Pass through** or **Strip**,
+  and set SCTE to **Strip**. Configure that connector for output in Desktop Video
+  Setup first. Output follows the source video mode; use a separate input port.
+  Verify captions and audio with a downstream SDI analyzer before live use.
+- For SDI SCTE-104 pass and TS → SDI conversion, follow [SDI SCTE](SDI_SCTE.md).
+- For generated captions, follow [Whisper installation](WHISPER.md#windows-installation-from-scratch).
+  Serial GPO dispatch remains unavailable.
 
 ## If something goes wrong
 

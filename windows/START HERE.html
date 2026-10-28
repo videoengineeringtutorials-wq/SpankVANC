@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SpankVANC — Start here</title>
+<style>body{font:18px/1.6 system-ui,sans-serif;max-width:850px;margin:3rem auto;padding:0 1.5rem;color:#172535;background:#f5f7fa}h1,h2{line-height:1.2}section{background:white;border:1px solid #d6dce3;border-radius:12px;padding:1.5rem;margin:1.5rem 0}a{color:#075aa9}li{margin:.6rem 0}code{font-size:.9em;overflow-wrap:anywhere}small{color:#49586b}</style></head>
+<body><h1>Welcome to SpankVANC</h1>
+<p>Route broadcast video and audio, monitor captions, and control caption and SCTE policies from a browser on your PC.</p>
+<p><strong>Windows 11 x64 · Experimental · Start with a test route.</strong> Python is included. FFmpeg, Blackmagic drivers and the DeckLink SDK are separate.</p>
+<section><h2>1. Prepare your card and media engine</h2><ol>
+<li>Install a compatible <a href="https://www.blackmagicdesign.com/support/family/capture-and-playback">Blackmagic Desktop Video driver</a>. Restart if requested. Confirm your card appears in Desktop Video Setup and check a known SDI picture in Media Express. Close Media Express afterward.</li>
+<li>For basic SDI capture, obtain a Windows x64 FFmpeg with DeckLink support. The <a href="https://github.com/videoengineeringtutorials-wq/SpankVANC/blob/main/docs/WINDOWS_BEGINNER.md">complete guide</a> describes an optional third-party download. Extract all its files into a permanent folder and locate <code>ffmpeg.exe</code>. A normal FFmpeg without DeckLink can still handle file/network routes.</li>
+<li>Keep a working driver for your exact card. Original Duo and Duo 2 have different connector capabilities.</li></ol></section>
+<section><h2>2. Open the app</h2><ol>
+<li>Extract the entire Windows App ZIP into a writable folder, such as Documents. Open the extracted <code>SpankVANC-Windows</code> folder.</li>
+<li>Double-click <strong>Start SpankVANC.cmd</strong>. When asked, drag your <code>ffmpeg.exe</code> into the console and press Enter.</li>
+<li>Keep the console open. The browser should open <a href="http://127.0.0.1:8877">http://127.0.0.1:8877</a> on this PC. Enter that address yourself if needed.</li></ol></section>
+<section><h2>3. Make a short recording</h2><ol>
+<li>Select the detected DeckLink input and the mode matching your SDI source. For example, Hi59 means 1080i59.94 fields per second.</li>
+<li>Start with the local TS file output and a new filename. Set SCTE to Strip and keep GPO disabled. Choose Captions Pass if supported, otherwise Strip for this first video/audio test.</li>
+<li>Check route readiness, resolve any listed requirements, then Start. Record briefly, Stop, and play the file in a TS-capable player.</li></ol><p>A playable picture does not verify caption rendering or SCTE timing. Check those with a suitable receiver.</p></section>
+<section><h2>4. Add the features you need</h2>
+<p><strong>Caption monitoring, SDI output, SCTE conversion and generated captions require the local extended engine.</strong> A stock DeckLink FFmpeg does not include these patches.</p>
+<ol><li>Follow <a href="https://github.com/videoengineeringtutorials-wq/SpankVANC/blob/main/docs/WINDOWS_BEGINNER.md#part-b--add-live-caption-monitoring-and-scte-conversion">Part B of the beginner guide</a>: install Ubuntu 24.04 in WSL and obtain the DeckLink SDK <strong>12.8 Win/include</strong> files.</li>
+<li>Double-click <strong>Build Extended Capture.cmd</strong>, supply that SDK folder, review its actions, and type BUILD. It downloads tools/source, compiles on your PC, verifies the engine and saves its path. Allow time and several GB of storage.</li>
+<li>Restart SpankVANC after a successful build. For SDI output, configure an output connector in Desktop Video Setup and select a different port from the input.</li>
+<li>For optional live speech captions, follow <a href="https://github.com/videoengineeringtutorials-wq/SpankVANC/blob/main/docs/WHISPER.md#windows-installation-from-scratch">Whisper installation from scratch</a>. This needs a separate Python with Whisper/PyTorch. Select audioWhisper replacement per output. Recognition adds lag; program A/V stays live.</li></ol>
+<p>The engine, SDK and drivers are not in this ZIP. The pinned nonfree engine stays local; public downloads contain the app and build support.</p></section>
+<section><h2>Help and upgrades</h2><p><strong>Configure FFmpeg.cmd</strong> changes the general engine. <strong>Diagnostics.cmd</strong> writes capability reports. The app's Activity → Engine log explains route failures.</p>
+<p>For upgrades, stop the old app and extract the new ZIP into a fresh folder. Keep the old folder for rollback. Locally copy <code>settings.json</code> and <code>runtime/route.json</code> if desired. Keep the old engine folder available: saved paths can point there. Rebuild the engine when release notes require it.</p>
+<p>Full online guides: <a href="https://github.com/videoengineeringtutorials-wq/SpankVANC/blob/main/docs/WINDOWS_BEGINNER.md">Windows installation</a> · <a href="https://github.com/videoengineeringtutorials-wq/SpankVANC/blob/main/docs/SDI_SCTE.md">SDI and SCTE</a> · <a href="https://github.com/videoengineeringtutorials-wq/SpankVANC/blob/main/docs/WHISPER.md">Whisper</a>.</p>
+<p>Offline text copies are in <code>docs</code>; open the .md files with Notepad. Never upload settings, saved routes, keys, private recordings, SDK files or engine binaries to support issues.</p></section>
+<small>This page works offline; downloads and online guides need Internet access.</small></body></html>

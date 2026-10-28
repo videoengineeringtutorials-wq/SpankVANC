@@ -1,0 +1,14 @@
+{
+  "version": "0.8.0",
+  "python_tests": 64,
+  "native_windows_execution_verified": true,
+  "scte104_opaque_payload_fragments_lines": "passed",
+  "scte104_vanc_checksum_and_packet_order": "passed",
+  "v210_decode_encode_and_independent_caption_strip": "passed",
+  "scte35_to104_timed_roundtrip": "passed",
+  "scte35_pts_adjustment_wrap_dedupe_and_rejection": "passed (C++ regression suite)",
+  "browser_scte_policy_pid_persistence": "passed",
+  "sdi_policy_preflight_combinations": 4,
+  "ts_conversion_continue_and_strict_preflight": "passed",
+  "physical_scte_receiver_verified": false
+}

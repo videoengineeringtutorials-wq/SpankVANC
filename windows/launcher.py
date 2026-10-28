@@ -49,6 +49,8 @@ def configure(settings,root=ROOT):
 
 def prepare_environment(binary,settings,root=ROOT):
     os.environ['SPANKVANC_FFMPEG']=binary
+    if settings.get('whisper_python_path'):
+        os.environ['SPANKVANC_WHISPER_PYTHON']=settings['whisper_python_path']
     # Override separately only when the user supplied a custom capture binary.
     bundled=root/'capture-ffmpeg/ffmpeg.exe'
     capture=settings.get('decklink_ffmpeg_path') or os.environ.get('SPANKVANC_DECKLINK_FFMPEG')

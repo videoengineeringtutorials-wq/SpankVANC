@@ -72,3 +72,65 @@ class DeckLinkTests(TestCase):
         self.assertEqual(decklink_devices(), ([DEVICE], ''))
         run.return_value = mock.Mock(returncode=1, stdout='', stderr='Driver unavailable')
         self.assertEqual(decklink_devices(), ([], 'Driver unavailable'))
+
+class DeckLinkOutputTests(TestCase):
+    def setUp(self):
+        self.port = {'name': 'DeckLink Duo (2)', 'output': True}
+        self.cap = dict(CAP, decklink_input=True, decklink_output=True,
+                        decklink_caption_output=True, source_monitor=True,
+                        decklink_devices=[DEVICE], decklink_outputs=[self.port])
+        self.cfg = route()
+        self.cfg['outputs'][0].update(kind='decklink', address=self.port['name'], video_codec='uncompressed')
+
+    def test_output_pass_and_strip_command(self):
+        self.assertTrue(plan(self.cfg, self.cap)['ready'])
+        args = command(validate(self.cfg), self.cap)
+        self.assertIn('v210', args)
+        self.assertIn('pcm_s16le', args)
+        self.assertEqual(args[-3:], ['-f', 'decklink', self.port['name']])
+        self.assertNotIn('libx264', args)
+        self.assertNotIn('-a53cc', args)
+        self.assertNotIn('-vf', args)
+        self.cfg['outputs'][0]['captions'] = 'strip'
+        args = command(validate(self.cfg), self.cap)
+        self.assertIn('sidedata=mode=delete:type=A53_CC', args)
+        self.assertTrue(plan(self.cfg, dict(self.cap, decklink_caption_output=False))['ready'])
+
+    def test_missing_port_build_and_input_collision_block(self):
+        for update in ({'decklink_output': False}, {'decklink_caption_output': False}, {'decklink_outputs': []}):
+            self.assertFalse(plan(self.cfg, dict(self.cap, **update))['ready'])
+        self.cfg['outputs'][0]['address'] = DEVICE['name']
+        self.assertFalse(plan(self.cfg, dict(self.cap, decklink_outputs=[DEVICE]))['ready'])
+        self.cfg['outputs'][0]['address'] = self.port['name']
+        self.cfg['outputs'][0]['scte'] = 'pass'
+        self.assertFalse(plan(self.cfg, self.cap)['ready'])
+
+    def test_mixed_outputs_keep_policies_separate(self):
+        self.cfg['outputs'].append(dict(route()['outputs'][0], name='TS', captions='strip'))
+        args = command(validate(self.cfg), self.cap)
+        port_index = args.index(self.port['name'])
+        self.assertNotIn('-vf', args[:port_index])
+        self.assertIn('libx264', args[port_index:])
+        self.assertIn('sidedata=mode=delete:type=A53_CC', args[port_index:])
+
+class DeckLinkOutputDiscoveryTests(TestCase):
+    @mock.patch('spankvanc.ffmpeg_compat.subprocess.run')
+    def test_sinks_discovery_does_not_need_decoder(self, run):
+        from spankvanc.ffmpeg_compat import discover_outputs
+        run.return_value=mock.Mock(stdout='Auto-detected sinks for decklink:\n  46:00000000:002e0500 [DeckLink SDI (2)] (none)\n',stderr='')
+        devices,error=discover_outputs('ffmpeg.exe')
+        self.assertEqual(devices,[{'name':'DeckLink SDI (2)','output':True}])
+        self.assertFalse(error)
+        self.assertEqual(run.call_args.args[0][-2:],['-sinks','decklink'])
+        self.assertEqual(run.call_count,1)
+
+    @mock.patch('spankvanc.ffmpeg_compat.subprocess.run')
+    def test_legacy_discovery_copies_without_encoder_or_decoder(self, run):
+        from spankvanc.ffmpeg_compat import discover_outputs
+        run.side_effect=[mock.Mock(stdout='',stderr='Unrecognized option sinks'),
+                         mock.Mock(stdout="  'DeckLink Duo (2)'\n",stderr='')]
+        devices,error=discover_outputs('ffmpeg.exe')
+        self.assertEqual(devices[0]['name'],'DeckLink Duo (2)')
+        self.assertFalse(error)
+        args=run.call_args.args[0]
+        self.assertEqual(args[args.index('-c:v')+1],'copy')

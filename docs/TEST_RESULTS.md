@@ -1,3 +1,48 @@
+## Release publication checks — October 28, 2026
+
+- Application suite rerun: **73 tests passed**, including caption policies,
+  local media and network loopbacks, Whisper lifecycle and build safeguards.
+- Native CMake/CTest rerun: **3 tests passed** (ANC policy, ESP32 and ESP8266
+  bench helpers). These do not exercise physical serial dispatch.
+- User reports that the Leader saw captions on SDI after 0.9.1. This is
+  receiver evidence reported by the user, without an archived scope capture.
+  Generated captions on the YouTube service and physical SCTE reception still
+  require downstream tests.
+- Browser persistence, progressive YouTube encoder profile, and UDP packet
+  verification rerun successfully. The UDP loopback had zero transport or
+  continuity errors; these are local software checks.
+- First-time installation docs now distinguish the portable app, separately
+  supplied media engine, local extended build and optional Whisper environment.
+  A fresh-PC beginner walkthrough and the new Whisper install recipe have not
+  been exercised end to end on a clean Windows installation.
+
+## Native Windows SDI caption/SCTE output — 2026-10-28
+
+Current version: 0.8.0. Latest regression suite: **64 tests passed**. Browser
+checks passed port/policy selection, SCTE-35 PID entry, Continue/Stop and
+save/reload persistence without JavaScript errors.
+
+The user confirmed working caption SDI output after the 0.7.0 engine update.
+The 0.8.0 engine was subsequently built on the Windows workstation
+using Ubuntu 24.04 under WSL 1, SDK 12.8 Windows headers and cached dependencies.
+No BIOS or Desktop Video driver change was required.
+
+Native Windows tests passed opaque SCTE-104 byte/fragment/line retention, VANC
+checksum and packet ordering, V210 decode/encode side-data carriage, independent
+caption stripping and a timed SCTE-35 → 104 roundtrip. The C++ regression suite
+also covers program cue types, descriptors, fragmentation, PTS adjustment/wrap,
+dedupe and rejected cues. Real device discovery and all four SDI policy
+combinations plus both TS conversion error policies passed preflight.
+
+These checks do **not** establish physical SCTE reception or compatibility with
+every receiver/card/format. The user was asked to restart into 0.8.0; restart and
+downstream SCTE analyzer evidence are still pending. Earlier dated sections below
+are historical and their “not implemented” statements may be superseded.
+
+See [SCTE evidence](verification/scte-output-0.8.0.json),
+[caption evidence](verification/decklink-playout-0.7.0.json),
+[operating limits](SDI_SCTE.md) and [the handoff](PROJECT_HANDOFF.md).
+
 > Historical development records follow. Earlier “private trial” packaging
 > descriptions do not establish redistribution rights. Public 0.6.0 assets
 > exclude all capture FFmpeg binaries; see REDISTRIBUTION.md.
@@ -321,3 +366,52 @@ Wine runtime. WIDL generation succeeded against the locally available SDK 14.x
 IDL files using these imports; this validates the import/compiler setup, not
 12.8 hardware compatibility or the complete Windows launcher. The fresh media
 build above still used the already-generated 12.8 include files.
+
+## October 28, 2026 — 0.9.0 Whisper integration
+
+- 70 Python tests passed, including odd parity, duplicated CC1 controls,
+  wrapping/decoder checks, capability gates, single capture, audio selection,
+  independent output policy and SCTE command retention.
+- Browser checks passed for replacement mode and CUDA/model/channel selection,
+  save/reload persistence and readiness without JavaScript errors.
+- The existing Windows Whisper/PyTorch environment recognized generated speech
+  using `turbo` on the P6000/CUDA and `small` on CPU. Both produced parity-valid
+  608 caption pairs; no dependency or audioWhisper source changes were needed.
+- Native Windows filter checks passed for 25/60 fps pacing, reading pairs
+  appended after EOF, upstream frame isolation and unrelated frame metadata.
+- Physical receiver acceptance of newly generated captions remains pending.
+
+- The complete Windows route produced 749 frames per TS output: 91 captioned
+  frames in H.264, 91 in MPEG-2 and zero in the independent Strip output.
+  Both replacement files were independently decoded to readable SRT text.
+- SDI replacement with SCTE-104 pass passed real-device preflight. Newly linked
+  native checks passed V210 decode/encode, SCTE packet/line retention, VANC
+  checksums and independent caption stripping.
+- Evidence: [Whisper verification record](verification/whisper-0.9.0.json).
+- Windows lifecycle checks passed: user stop cleaned up the worker, forced worker
+  failure stopped the route with a clear diagnostic, and a missing audio channel
+  was rejected. A regression check covers pipe failure preceding worker notification.
+
+## October 28, 2026 — 0.9.1 receiver framing repair
+
+The user reported failed rendering of 0.9.0 generated captions on the Leader
+and YouTube, despite detected 608 and working passthrough. The original offline
+software decode did not check the frame-rate-specific transport budget.
+
+- 73 Python tests and browser checks passed. New coverage includes ordinary
+  word boundaries, oversized-word preservation, explicit column-zero reset,
+  late receiver initialization and YouTube frame synchronization isolation.
+- The old 29.97 fps test had 91 single-tuple frames and 658 frames without A/53;
+  zero frames met the continuous 20-tuple budget used by the repair.
+- Actual repaired H.264 TS, MPEG-2 TS and YouTube-profile local FLV each had
+  749 decoded frames with 20 tuples per frame and all 210 generated pairs
+  retained in order, exactly once. Independent Strip had no A/53.
+- Independent SRT decoding verified whole words, exact 32-character rows,
+  shorter following rows and a late join at four seconds.
+- Native Windows checks passed at 23.976/24/25/29.97/30/50/59.94/60 fps for
+  tuple budgets, fields, parity, V210 retention, CDP/VANC checksums, source
+  isolation and partial journal writes followed by append.
+- YouTube testing used a local FLV with its actual profile; no stream was sent
+  to the service. Physical Leader and YouTube-service retests remain pending.
+
+Evidence: [0.9.1 framing checks](verification/whisper-framing-0.9.1.json).

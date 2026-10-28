@@ -154,3 +154,35 @@ separate sections in source order; supplemental descriptors belong to their
 preceding normal request. Entire messages are validated before output/dedupe
 commit. Continue mode discards rejected messages and allows later valid cues;
 strict mode stops. Resource/queue failures remain fatal.
+
+## SDI caption output (0.7.0)
+
+Rebuild the local engine even if a previous Extended engine is configured. The
+build now pins libklvanc, enables the DeckLink output device and V210 encoder,
+and copies A/53 frame side data to V210 packets for VANC generation. libklvanc
+uses Autoconf, Automake and Libtool; the bootstrap dependency list includes them.
+The app-only ZIP includes this build support, but no FFmpeg or SDK binaries.
+
+Choose **DeckLink · SDI**, then select an actual detected output port and caption
+**Pass through** or **Strip**. Choose **Strip** for SCTE. The output uses the
+source format with embedded stereo 48 kHz PCM. Configure the connector for output
+in Desktop Video Setup first; do not select the input port. Passthrough
+regenerates 608/708 caption CDPs rather than copying all incoming ANC. If VANC
+output cannot be enabled, passthrough stops with an error. Verify physical SDI
+video, field order, audio and captions on the Windows/Duo workstation.
+
+If firmware virtualization is unavailable, Ubuntu 24.04 under WSL 1 has also
+been used to complete this cross-build. Native Windows engine execution,
+DeckLink device discovery, V210 caption side data and pass/strip preflight
+passed. Physical SDI output still requires downstream verification. The
+build helper prefers the installed WSL executable and passes paths directly
+to avoid the System32 launcher/quoting problems observed over SSH.
+
+SCTE update (0.8.0): SDI outputs can Pass SCTE-104 from SDI input, or Convert
+35 → 104 from a TS input. See docs/SDI_SCTE.md for PID selection, timing and
+Continue/Stop behavior. Rebuild the local engine before enabling these choices.
+
+Whisper update (0.9.0): current builds include the live CC1 replacement filter
+and routed raw-audio tap. Configure a separate Whisper/PyTorch Python using
+`whisper_python_path` in settings.json. CPU and CUDA are selectable. See
+[Whisper setup and limits](WHISPER.md); A/V is not delayed by recognition.

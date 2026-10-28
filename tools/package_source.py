@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--output", type=Path, default=ROOT / f"releases/SpankVANC-{__version__}-source.zip")
 args = parser.parse_args()
 args.output.parent.mkdir(parents=True, exist_ok=True)
-files = [ROOT / path for path in ("README.md", "LICENSE", "pyproject.toml", ".gitignore", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md", "CONTRIBUTING.md", "SECURITY.md")]
+files = [ROOT / path for path in ("README.md", "AGENTS.md", "LICENSE", "pyproject.toml", ".gitignore", "CHANGELOG.md", "THIRD_PARTY_NOTICES.md", "CONTRIBUTING.md", "SECURITY.md")]
 for directory in ("spankvanc", "native", "firmware", "tests", "docs", "examples", "tools", "windows", ".github"):
     files.extend(path for path in (ROOT / directory).rglob("*")
                  if path.is_file() and "__pycache__" not in path.parts and path.suffix not in (".pyc", ".exe", ".dll", ".a", ".so", ".ts", ".flv", ".ndjson") and path.name not in ("WORKSTATION_HANDOFF.md", "control-panel.png"))

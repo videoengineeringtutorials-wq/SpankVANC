@@ -25,6 +25,9 @@ def check(path):
    if tuple(map(int,manifest['app_version'].split('.'))) >= (0,6,1):
     for required in ('Build Extended Capture.cmd','Setup Guide.url','app/windows_build_capture.py','build-support/tools/bootstrap_windows_capture.py','build-support/tools/build_windows_capture.sh','build-support/tools/patch_ffmpeg_decklink.py','build-support/tools/patch_ffmpeg_monitor_scte.py','build-support/native/scte104.hpp','build-support/windows/mingw-toolchain.cmake','docs/WINDOWS_BEGINNER.md'):
      assert prefix+required in names,'Missing setup/build support: '+required
+   if tuple(map(int,manifest['app_version'].split('.'))) >= (0,9,1):
+    for required in ('START HERE.html','docs/WHISPER.md','docs/SDI_SCTE.md','app/spankvanc/whisper_worker.py','build-support/tools/patch_ffmpeg_whisper.py','build-support/native/vf_spankvanc_cc.c'):
+     assert prefix+required in names,'Missing installation/runtime support: '+required
    for name,digest in manifest['files'].items():
     assert hashlib.sha256(archive.read(prefix+name)).hexdigest()==digest,'Manifest mismatch: '+name
   else:

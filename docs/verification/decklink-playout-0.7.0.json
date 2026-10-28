@@ -1,0 +1,15 @@
+{
+  "version": "0.7.0",
+  "windows_cross_build": "passed (FFmpeg 7.0.2, DeckLink SDK 12.8, libklvanc)",
+  "windows_execution": "Native Windows 11 over SSH; compiler hosted in Ubuntu 24.04 on WSL 1",
+  "v210_608_708_side_data_pass_strip": "passed",
+  "existing_windows_caption_scte_checks": "passed (75 captioned frames, 0 stripped frames)",
+  "browser_port_policy_persistence_refresh": "passed (simulated devices)",
+  "python_tests": 56,
+  "windows_hardware_verified": false,
+  "physical_decklink_duo_output_verified": false,
+  "windows_engine_verified": true,
+  "decklink_input_output_discovery": "passed: three inputs and three outputs",
+  "sdi_route_preflight": "passed for caption pass and strip",
+  "caption_playout_option_initialization": "passed; AVClass remains first context member"
+}

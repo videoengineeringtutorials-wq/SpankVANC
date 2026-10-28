@@ -21,25 +21,28 @@ p=Path(sys.argv[1]);s=p.read_text();p.write_text(s.replace(' -lgcc_s',''))
 PYSTATIC
 python3 "$project_dir/tools/patch_ffmpeg_decklink.py" "$source_dir"
 python3 "$project_dir/tools/patch_ffmpeg_monitor_scte.py" "$source_dir"
+python3 "$project_dir/tools/patch_ffmpeg_playout.py" "$source_dir"
+python3 "$project_dir/tools/patch_ffmpeg_scte_output.py" "$source_dir"
+python3 "$project_dir/tools/patch_ffmpeg_whisper.py" "$source_dir"
 cd "$source_dir"
 ./configure --prefix="$build_dir/capture" --cross-prefix=x86_64-w64-mingw32- \
  --arch=x86_64 --target-os=mingw32 --enable-cross-compile --stdcxx=c++17 \
  --enable-gpl --enable-nonfree --enable-version3 --enable-static --disable-shared \
  --enable-decklink --disable-autodetect --disable-debug --disable-doc --disable-ffplay \
- --disable-w32threads --enable-pthreads --disable-outdevs --disable-everything \
+ --disable-w32threads --enable-pthreads --disable-outdevs --disable-everything --enable-outdev=decklink --enable-libklvanc \
  --enable-indev=decklink,lavfi --enable-libx264 --enable-libsrt --enable-openssl \
- --enable-encoder=libx264,mpeg2video,aac,pcm_s16le,wrapped_avframe \
+ --enable-encoder=libx264,mpeg2video,aac,pcm_s16le,wrapped_avframe,v210,pcm_f32le \
  --enable-decoder=h264,mpeg2video,aac,rawvideo,v210,pcm_s16le,pcm_s32le \
  --enable-parser=h264,mpegvideo,aac,aac_latm \
  --enable-demuxer=mpegts,nut,flv,mov,matroska,rawvideo \
- --enable-muxer=mpegts,flv,null,nut,matroska \
- --enable-filter=buffer,buffersink,abuffer,abuffersink,format,scale,aresample,null,anull,sidedata,testsrc2,sine,setpts,asetpts,yadif,pad,setsar,fps,setfield \
+ --enable-muxer=mpegts,flv,null,nut,matroska,pcm_f32le \
+ --enable-filter=buffer,buffersink,abuffer,abuffersink,format,scale,aresample,null,anull,sidedata,testsrc2,sine,setpts,asetpts,yadif,pad,setsar,fps,setfield,pan,channelmap,spankvanc_cc \
  --enable-bsf=h264_mp4toannexb,aac_adtstoasc \
  --enable-protocol=file,pipe,tcp,udp,libsrt,rtmp,rtmps,tls,rtp \
  --extra-version=SpankVANC-Windows-SDK12.8 --pkg-config-flags=--static \
- --extra-cflags="-I$build_dir/decklink-headers/include" \
- --extra-cxxflags="-I$build_dir/decklink-headers/include" \
- --extra-ldflags="-static -static-libgcc -static-libstdc++"
+ --extra-cflags="-I$build_dir/decklink-headers/include -I$build_dir/deps/include" \
+ --extra-cxxflags="-I$build_dir/decklink-headers/include -I$build_dir/deps/include" \
+ --extra-ldflags="-L$build_dir/deps/lib -static -static-libgcc -static-libstdc++"
 touch fftools/ffmpeg.c fftools/ffprobe.c
 make -j6
 make install

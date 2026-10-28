@@ -56,3 +56,31 @@ def discover(binary):
 
 def option_names(text):
     return sorted(set(re.findall(r'^\s+-([a-zA-Z0-9_]+)\s',text,re.MULTILINE)))
+
+
+def parse_sink_names(text):
+    names = []
+    for line in text.splitlines():
+        match = re.fullmatch(r'\s*(?:\*\s*)?\S+\s+\[([^\]\r\n]+)\]\s+\([^)]*\)\s*', line)
+        if match and match[1] not in names:
+            names.append(match[1])
+    return names
+
+
+def discover_outputs(binary):
+    """List actual output ports without decoding video or changing profiles."""
+    def query(*args):
+        p = subprocess.run([binary, '-hide_banner', '-nostdin', *args],
+                           capture_output=True, text=True, errors='replace', timeout=15)
+        return p.stdout + p.stderr
+    try:
+        names = parse_sink_names(query('-sinks', 'decklink'))
+        if not names:
+            # Older FFmpeg builds only expose the legacy list command. Copy
+            # synthetic packets so discovery does not depend on a decoder.
+            names = parse_device_names(query('-f', 'lavfi', '-i',
+                'testsrc2=size=1920x1080:rate=30000/1001', '-c:v', 'copy',
+                '-f', 'decklink', '-list_devices', '1', 'dummy'))
+        return [{'name': name, 'output': True} for name in names], '' if names else 'No DeckLink output ports reported'
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return [], str(exc)
