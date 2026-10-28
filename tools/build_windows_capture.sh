@@ -4,7 +4,7 @@
 # All dependencies and compiler files stay in build/, with no system installation.
 set -euo pipefail
 project_dir=$(cd "$(dirname "$0")/.." && pwd)
-build_dir="$project_dir/build/windows-cross"
+build_dir="${SPANKVANC_CROSS_BUILD_DIR:-$project_dir/build/windows-cross}"
 source_dir="$build_dir/ffmpeg-7.0.2"
 export PATH="$build_dir/toolchain/usr/bin:$PATH"
 export PKG_CONFIG_LIBDIR="$build_dir/deps/lib/pkgconfig"

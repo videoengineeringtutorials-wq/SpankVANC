@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.1 — guided Windows setup and local build
+
+- Full PC-and-Blackmagic-card beginner guide with the user-suggested AnimMouse
+  download option, x64 extraction, driver setup, first recording and troubleshooting.
+- Build Extended Capture.cmd guides a local Ubuntu/WSL build using user-supplied
+  SDK 12.8 files, then verifies the new engine and saves its path.
+- Automated prerequisite installation, pinned/source-hash-checked downloads,
+  SDK interface generation and static Windows FFmpeg build; resumable dependencies.
+- App ZIP includes build helper/support source, not SDKs or capture binaries.
+  Existing engines/settings are preserved and build products stay local.
+
 ## 0.6.0 — first public experimental release
 
 - Dedicated YouTube progressive SDR 1080p30 profile: deinterlacing, square-pixel

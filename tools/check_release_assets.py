@@ -10,7 +10,7 @@ def check(path):
   for name in names:
    parts=Path(name).parts;lower=name.lower()
    assert not name.startswith('/') and '..' not in parts,'Unsafe archive path'
-   assert not any(p.lower() in ('runtime','diagnostics','.git','.ssh','capture-ffmpeg','decklinksdk','sdk') for p in parts),'Forbidden state or dependency directory: '+name
+   assert not any(p.lower() in ('runtime','diagnostics','.git','.ssh','capture-ffmpeg','capture-ffmpeg-local','decklinksdk','sdk') for p in parts),'Forbidden state or dependency directory: '+name
    assert Path(name).name not in ('settings.json','route.json','WORKSTATION_HANDOFF.md','.env','id_rsa','id_ed25519'),'Workstation state: '+name
    assert not Path(name).name.startswith('DeckLinkAPI'),'SDK file: '+name
    suffix=Path(name).suffix.lower()
@@ -22,6 +22,9 @@ def check(path):
    manifest=json.loads(archive.read(prefix+'PACKAGE.json'))
    assert manifest['ffmpeg']=='User-provided; not bundled'
    assert prefix+'python/LICENSE.txt' in names
+   if tuple(map(int,manifest['app_version'].split('.'))) >= (0,6,1):
+    for required in ('Build Extended Capture.cmd','Setup Guide.url','app/windows_build_capture.py','build-support/tools/bootstrap_windows_capture.py','build-support/tools/build_windows_capture.sh','build-support/tools/patch_ffmpeg_decklink.py','build-support/tools/patch_ffmpeg_monitor_scte.py','build-support/native/scte104.hpp','build-support/windows/mingw-toolchain.cmake','docs/WINDOWS_BEGINNER.md'):
+     assert prefix+required in names,'Missing setup/build support: '+required
    for name,digest in manifest['files'].items():
     assert hashlib.sha256(archive.read(prefix+name)).hexdigest()==digest,'Manifest mismatch: '+name
   else:

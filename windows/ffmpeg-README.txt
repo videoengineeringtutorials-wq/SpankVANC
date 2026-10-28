@@ -1,3 +1,6 @@
-Optional: place your existing FFmpeg distribution here, including required DLLs,
-so ffmpeg\ffmpeg.exe exists. Otherwise use Configure FFmpeg.cmd to select it.
-No FFmpeg download or driver replacement is performed by this package.
+Place your separately supplied FFmpeg here, keeping its required DLLs/files.
+Optional user-suggested source: https://github.com/AnimMouse/ffmpeg-stable-autobuild/releases
+Choose win64 and extract the entire archive. These are third-party nonfree
+builds; review their notices. Stock FFmpeg supports basic capture but lacks
+SpankVANC live source telemetry and SCTE conversion. See docs/WINDOWS_BEGINNER.md
+for the no-compile path and local extended build. No FFmpeg is bundled here.

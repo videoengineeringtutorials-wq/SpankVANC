@@ -42,10 +42,15 @@ for path in sorted((ROOT/'spankvanc').rglob('*')):
     if path.is_file() and '__pycache__' not in path.parts and path.suffix!='.pyc':
         files['app/'+path.relative_to(ROOT).as_posix()]=path.read_bytes()
 files['app/windows_launcher.py']=(ROOT/'windows/launcher.py').read_bytes()
-for name in ('Start SpankVANC.cmd','Configure FFmpeg.cmd','Diagnostics.cmd','README.txt'):
+files['app/windows_build_capture.py']=(ROOT/'windows/build_capture.py').read_bytes()
+for name in ('Start SpankVANC.cmd','Configure FFmpeg.cmd','Diagnostics.cmd','Build Extended Capture.cmd','Setup Guide.url','README.txt'):
     data=(ROOT/'windows'/name).read_bytes()
     if name.endswith('.cmd'):assert b'\r\n' in data and b'python.exe' in data
     files[name]=data
+for name in ('bootstrap_windows_capture.py','build_windows_capture.sh','patch_ffmpeg_decklink.py','patch_ffmpeg_monitor_scte.py'):
+    files['build-support/tools/'+name]=(ROOT/'tools'/name).read_bytes()
+files['build-support/native/scte104.hpp']=(ROOT/'native/scte104.hpp').read_bytes()
+files['build-support/windows/mingw-toolchain.cmake']=(ROOT/'windows/mingw-toolchain.cmake').read_bytes()
 files['ffmpeg/README.txt']=(ROOT/'windows/ffmpeg-README.txt').read_bytes()
 for path in sorted((ROOT/'docs').glob('*.md')):
     if path.name != 'WORKSTATION_HANDOFF.md':files['docs/'+path.name]=path.read_bytes()

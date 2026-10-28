@@ -1,0 +1,18 @@
+{
+  "ffmpeg": "7.0.2",
+  "sdk": "12.8",
+  "x264": "0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee",
+  "source_sha256": {
+    "ffmpeg-7.0.2.tar.xz": "8646515b638a3ad303e23af6a3587734447cb8fc0a0c064ecdb8e95c4fd8b389",
+    "openssl-3.5.9.tar.gz": "796831ec533bf41998eaaee9d632d921b8a69f57394fa4086ff01a941113d26d",
+    "srt-1.5.4.tar.gz": "d0a8b600fe1b4eaaf6277530e3cfc8f15b8ce4035f16af4a5eb5d4b123640cdd"
+  },
+  "binary_sha256": "ce677571d1adeb6b72f0f441d9020e7943d06bed867ada0f9260421441c8807d",
+  "redistributable": false,
+  "fresh_dependency_build": true,
+  "archive_download_hash_checks_separately_verified": true,
+  "sdk_input": "pre-generated SDK 12.8 headers",
+  "sdk_idl_generation_tested": false,
+  "physical_windows_wsl_launcher_tested": false,
+  "sdk_or_engine_published": false
+}

@@ -1,0 +1,20 @@
+{
+  "source_interlaced": true,
+  "output_progressive": true,
+  "resolution": "1920x1080",
+  "fps": 30,
+  "keyframe_frame_indices": [
+    0,
+    60,
+    120
+  ],
+  "measured_video_bitrate": 15311415,
+  "audio": "AAC-LC stereo 44100 Hz",
+  "windows_binary_under_wine": true,
+  "youtube_live_ingestion_tested": false,
+  "caption_frames_after_deinterlace": {
+    "pass": 90,
+    "strip": 0
+  },
+  "caption_text_independently_decoded": true
+}

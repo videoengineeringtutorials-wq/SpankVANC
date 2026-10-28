@@ -1,4 +1,8 @@
-SpankVANC 0.6.0 — Windows 11 x64 app
+SpankVANC 0.6.1 — Windows 11 x64 app
+
+START HERE: double-click Setup Guide.url to open the online guide.
+The offline copy is docs\WINDOWS_BEGINNER.md is the complete PC-and-card setup guide.
+It includes the AnimMouse FFmpeg download link and explains basic vs extended features.
 
 1. Extract this entire ZIP into a NEW writable folder.
 2. Run Start SpankVANC.cmd and select your separately supplied ffmpeg.exe.
@@ -32,3 +36,8 @@ Read docs\SETUP.md for installation, upgrades and troubleshooting,
 docs\WINDOWS_EXTENDED_BUILD.md for the advanced local build,
 and docs\REDISTRIBUTION.md plus THIRD_PARTY_NOTICES.md for dependency licenses.
 SDI output, Whisper recaptioning and serial dispatch are not integrated.
+
+Build Extended Capture.cmd automates a local extended engine build after
+Ubuntu 24.04/WSL and user-supplied SDK 12.8 setup. Follow the beginner guide
+first. It downloads build dependencies, compiles locally and saves the new path;
+it does not install card drivers or upload build results.

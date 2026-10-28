@@ -1,5 +1,10 @@
 # Installation and first test
 
+Starting with only a Windows PC and Blackmagic card? Follow
+[Windows setup from scratch](WINDOWS_BEGINNER.md) first. It covers the
+user-suggested [AnimMouse downloads](https://github.com/AnimMouse/ffmpeg-stable-autobuild/releases)
+and the new **Build Extended Capture.cmd** local build launcher.
+
 ## Choose your media engine
 
 SpankVANC is the control app. FFmpeg is a separate executable. A normal FFmpeg

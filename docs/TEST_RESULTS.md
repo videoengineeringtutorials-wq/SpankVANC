@@ -286,3 +286,38 @@ multicast receiver trace and reported preroll still require a retest.
 Final checks: 43 unit/media tests and the isolated YouTube browser check passed.
 All three native/firmware CTest cases passed. Public source/Windows app ZIPs
 passed archive/manifest/dependency checks; an attempted FFmpeg bundle was refused.
+
+## Guided setup / local build 0.6.1
+
+48 unit/media tests passed, including SDK-version rejection before installs,
+source-hash rejection, configuration preservation, paths with spaces and stock
+engine rejection. The isolated YouTube browser test passed. Extracted app ZIP
+resources and its standalone bootstrap --help were checked from a path with
+spaces. Public package checks now require all guided-build support files.
+
+The bootstrap completed a new Windows x64 dependency build from cached pinned
+source archives and pre-generated SDK 12.8 Include headers in a fresh directory:
+x264, OpenSSL, SRT and patched FFmpeg all compiled. A separate live download test
+verified each FFmpeg/OpenSSL/SRT source URL, SHA-256 and extraction. SDK files
+were locally supplied; no SDK download/acceptance was automated. The original
+12.8 SDK IDL generation path and physical Windows/WSL launcher have not been
+walked through here; a real beginner-machine test remains necessary.
+
+The fresh executable ran under Wine. Actual YouTube-profile output was
+progressive 1080p30 with correct keyframes/audio; captions passed after
+deinterlacing (90 frames) and stripped (0), with independent text decoding.
+Raw UDP retained six SCTE sections and had zero unknown PIDs, continuity/TEI
+errors or scrambling flags. JSON reports are in docs/verification/.
+
+AnimMouse's release metadata/README were inspected for the user-suggested link:
+win64 nonfree builds list DeckLink/FDK AAC. No binary was downloaded, mirrored,
+bundled or certified for redistribution, and a stock build is not represented
+as containing SpankVANC-specific telemetry/conversion.
+
+An additional IDL-generation check caught missing standard COM IDL imports in
+Ubuntu MinGW. The helper now obtains libwine-dev through apt-get download and
+extracts it locally for unknwn.idl and related imports, without installing the
+Wine runtime. WIDL generation succeeded against the locally available SDK 14.x
+IDL files using these imports; this validates the import/compiler setup, not
+12.8 hardware compatibility or the complete Windows launcher. The fresh media
+build above still used the already-generated 12.8 include files.

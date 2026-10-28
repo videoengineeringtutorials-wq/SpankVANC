@@ -4,10 +4,14 @@ A local broadcast routing and monitoring app for DeckLink SDI, captions and
 SCTE cues. Python serves a browser control panel on **127.0.0.1:8877**; media
 processing runs in a separately installed FFmpeg. No PHP or cloud backend.
 
-**Version 0.6.0 — experimental.** Test on a spare route before using a live
+**Version 0.6.1 — experimental.** Test on a spare route before using a live
 program. CPU encoding is used; an NVIDIA GPU is not required.
 
 ## Get running
+
+**New Windows user with just a PC and a card? Start with the
+[complete beginner setup guide](docs/WINDOWS_BEGINNER.md).** It includes the
+user-suggested AnimMouse download option and a guided local extended build.
 
 - **Windows 11:** download the **Windows x64 App** ZIP from
   [Releases](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases),
@@ -15,6 +19,9 @@ program. CPU encoding is used; an NVIDIA GPU is not required.
   FFmpeg and Blackmagic Desktop Video are installed separately.
 - **Linux / source:** install Python 3.11+ and FFmpeg, then run
   `python3 -m spankvanc serve` from this checkout. Open the local browser URL.
+- For local caption monitoring/SCTE conversion, **Build Extended Capture.cmd**
+  builds the engine on your own PC using Ubuntu/WSL and user-supplied SDK 12.8 files.
+  See [the guided steps](docs/WINDOWS_BEGINNER.md#part-b--add-live-caption-monitoring-and-scte-conversion).
 - Follow the [setup guide](docs/SETUP.md) for dependencies, device selection,
   first test, upgrades, logs and troubleshooting.
 

@@ -1,5 +1,12 @@
 # Build the Windows capture engine locally
 
+For a Windows-first walkthrough, use [the beginner guide](WINDOWS_BEGINNER.md).
+From the current Windows app package, **Build Extended Capture.cmd** automates
+the dependency preparation and local build after WSL and SDK setup. The
+standalone `tools/bootstrap_windows_capture.py` does the same preparation inside
+Ubuntu; `--check-only` validates prerequisites without downloads/builds.
+The detailed manual procedure below remains available for developers.
+
 This is an advanced **Ubuntu 24.04 / WSL2 cross-build** for Windows x64 using
 FFmpeg 7.0.2 and DeckLink SDK 12.8 include interfaces. It produces a local-use
 nonfree executable; do not upload it or historical Extended ZIPs to GitHub.
@@ -20,7 +27,7 @@ Install build tools on your Ubuntu build host:
 sudo apt-get update
 sudo apt-get install build-essential git curl xz-utils cmake pkg-config nasm perl python3 \
   gcc-mingw-w64-x86-64-posix g++-mingw-w64-x86-64-posix \
-  binutils-mingw-w64-x86-64 mingw-w64-tools
+  binutils-mingw-w64-x86-64 mingw-w64-tools libwine-dev
 ```
 
 Obtain the **12.8 SDK** from Blackmagic and accept its terms yourself. Retain its
@@ -54,9 +61,13 @@ mkdir -p "$build_dir/decklink-headers/include"
 cp "$sdk_win_include/"*.idl "$sdk_win_include/DeckLinkAPIVersion.h" "$build_dir/decklink-headers/include/"
 cd "$build_dir/decklink-headers/include"
 for file in ./*.idl; do sed -i -e '$a\' "$file"; done
-x86_64-w64-mingw32-widl --win64 -I/usr/x86_64-w64-mingw32/include -h -u DeckLinkAPI.idl
+x86_64-w64-mingw32-widl --win64 -I/usr/include/wine/wine/windows -h -u DeckLinkAPI.idl
 cd "$project_dir"
 ```
+
+The Wine development files supply imported IDL definitions such as `unknwn.idl`,
+which Ubuntu MinGW alone does not provide. The automated helper extracts the
+`libwine-dev` package locally instead of installing the Wine runtime.
 
 If your distribution names the program `widl`, use that executable with the same
 arguments. Confirm `DeckLinkAPIVersion.h` reports `0x0c080000` and that

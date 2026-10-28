@@ -4,6 +4,21 @@ Reviewed 2026-10-27 against the actual build configuration and vendor terms.
 This records the project's release decisions; it is not a blanket legal clearance
 for other builds or a substitute for reviewing the licenses you actually use.
 
+## Local build automation and third-party download links
+
+**Build Extended Capture.cmd** invokes a local Ubuntu/WSL bootstrap, using SDK
+Include files supplied by the user. It does not download/accept the SDK or
+publish build results. Compiler packages and pinned open-source dependencies
+and the Wine development IDL imports are obtained on that local machine. The same unredistributable-binary rule
+applies to its output; automation is not an exemption.
+
+The beginner guide links the user-suggested
+[AnimMouse releases](https://github.com/AnimMouse/ffmpeg-stable-autobuild/releases).
+That project explicitly describes its builds as nonfree, with DeckLink and
+FDK AAC. We neither mirror them nor certify their redistribution compliance.
+Their stock builds do not include SpankVANC extensions. Users review the
+third-party notices and obtain their chosen engine separately.
+
 ## Public release contents
 
 Publish SpankVANC's source, setup/build instructions and an app-only Windows ZIP
