@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="control-token" content="__CONTROL_TOKEN__">
+  <title>SpankVANC · Signal control</title>
+  <link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
+</head>
+<body>
+  <aside class="rail"><a class="mark" href="/" aria-label="SpankVANC home">S<span>V</span></a><span class="rail-label">SIGNAL CONTROL</span><span class="version">0.1</span></aside>
+  <div class="workspace">
+    <header><div><div class="eyebrow">BROADCAST TOOLKIT / LOCAL CONTROL</div><h1>Spank<span>VANC</span><span class="preview">DEVELOPMENT PREVIEW</span></h1></div><div class="status"><span class="dot" id="state-dot"></span><span id="route-status">Connecting</span><span class="host">LOCAL ENGINE</span></div></header>
+    <div class="toolbar"><div><span class="section-index">01</span><h2>Signal routing</h2><span class="subtle">One source. Independent output policies.</span></div><div class="actions"><button id="save">Save route</button><button id="validate">Check route</button><button class="primary" id="start">Start route <span>↗</span></button><button class="danger" id="stop" disabled>Stop</button></div></div>
+    <div id="notice" role="status" aria-live="polite" hidden></div>
+    <main>
+      <section class="panel source"><div class="panel-title"><div><span class="eyebrow">SOURCE</span><h3>Program input</h3></div><span class="tag">IN</span></div>
+        <label>Route name<input id="route-name" maxlength="100"></label>
+        <label>Input type<select id="input-kind"><option value="decklink">Blackmagic DeckLink · SDI</option><option value="udp">UDP · MPEG-TS</option><option value="srt">SRT · MPEG-TS</option><option value="rtmp">RTMP / RTMPS</option><option value="file">Local file · test source</option></select></label>
+        <label id="source-address-label">Device name / source address<input id="input-address" placeholder="Select a source to begin" autocomplete="off" spellcheck="false"></label>
+        <div id="decklink-source" hidden>
+          <label>Blackmagic input device<select id="decklink-device"></select></label>
+          <label>SDI video mode<select id="decklink-mode"></select></label>
+          <label>SCTE error handling<select id="scte-error-policy"><option value="continue">Continue A/V · reject unsupported cues</option><option value="stop">Stop route on rejected cue · strict</option></select></label>
+          <p class="subtle">Continue mode discards rejected cue messages and shows a warning; it does not preserve those cues.</p>
+          <button id="refresh-devices" class="small" type="button">Refresh devices</button>
+          <p class="subtle" id="decklink-info"></p>
+        </div>
+        <label class="check"><input type="checkbox" id="input-realtime">Read test files at program speed</label>
+        <div class="signal-path"><span>VIDEO</span><i></i><span>AUDIO</span><i></i><span>ANC</span></div>
+        <div class="source-note" id="source-capability-note">DeckLink input captures SDI video, embedded stereo audio and captions. Choose the mode matching your source. Program SCTE-104 cues can convert to SCTE-35 for TS outputs. SDI output remains unavailable.</div>
+      </section>
+      <section class="panel outputs"><div class="panel-title"><div><span class="eyebrow">DESTINATIONS</span><h3>Program outputs</h3></div><button id="add-output" class="small">+ Add output</button></div><div id="outputs"></div><div class="output-legend"><span class="dot lime"></span>Caption and SCTE policies are applied separately to every output.</div></section>
+      <section class="panel tools"><div class="panel-title"><div><span class="eyebrow">PROCESSING</span><h3>Caption & trigger tools</h3></div></div>
+        <div class="tool-heading"><h4>audioWhisper recaptioning</h4><span class="tag pending">INTEGRATION PENDING</span></div><p class="subtle">Replace source captions with speech recognition from the program audio.</p>
+        <div class="form-grid"><label>Model<select id="whisper-model"><option>tiny.en</option><option>base.en</option><option>small.en</option><option>medium.en</option><option>large-v3</option><option>turbo</option></select></label><label>Language<input id="whisper-language" maxlength="3"></label><label>Program delay · ms<input id="whisper-delay" type="number" min="0" max="60000" step="500"></label><label>Audio channel<input id="whisper-channel" type="number" min="1" max="64"></label></div>
+        <div class="divider"></div><div class="tool-heading"><h4>SCTE → serial GPO</h4><span class="tag pending">INTEGRATION PENDING</span></div><p class="subtle">Map decoded cues to ESP32 / ESP8266 output pulses.</p><label class="check"><input type="checkbox" id="gpo-enabled">Enable serial trigger output</label>
+        <div class="form-grid"><label>Serial port<input id="gpo-port" placeholder="/dev/ttyUSB0 or COM3"></label><label>Baud rate<input value="115200" readonly></label><label>Output channel<input id="gpo-channel" type="number" min="1" max="4"></label><label>Pulse length · ms<input id="gpo-pulse" type="number" min="10" max="10000"></label></div>
+      </section>
+      <section class="panel readiness"><div class="panel-title"><div><span class="eyebrow">PREFLIGHT</span><h3>Route readiness</h3></div><span class="tag" id="ready-tag">CHECKING</span></div><div id="blockers"></div><div id="plan-outputs"></div><details><summary>Processing notes</summary><ul id="notes"></ul></details></section>
+      <section class="panel diagnostics"><div class="panel-title"><div><span class="eyebrow">ENGINE</span><h3>System capabilities</h3></div><span class="tag">DETECTED</span></div><div id="capabilities"></div><p class="subtle" id="ffmpeg-version"></p></section>
+      <section class="panel log-panel"><div class="panel-title"><div><span class="eyebrow">ACTIVITY</span><h3>Engine log</h3></div><span class="tag" id="exit-code">IDLE</span></div><pre id="logs" aria-live="off">No route started. Configure your source and check readiness.</pre></section>
+      <section class="panel caption-panel" aria-label="Live incoming captions">
+        <div class="panel-title"><div><span class="eyebrow">SOURCE MONITOR · BEFORE OUTPUT FILTERS</span><h3>Incoming captions</h3></div><span class="tag" id="caption-status">STOPPED</span></div>
+        <div class="monitor-toolbar"><label>608 service<select id="caption-service"><option>CC1</option><option>CC2</option><option>CC3</option><option>CC4</option></select></label><button id="monitor-start">Start source monitor</button><button id="monitor-stop" disabled>Stop monitor</button><span class="subtle" id="caption-counts">No source data yet</span></div>
+        <pre id="caption-screen" class="caption-screen" aria-live="off">Start the source monitor or a DeckLink route to view incoming captions.</pre>
+        <p class="subtle" id="cue-counts">SCTE-104: 0 packets · Converted: 0</p>
+        <p class="subtle">Shows incoming CEA-608 text, independent of output Pass/Strip. CC1–CC4 are selectable. Native 708 packets are counted; 708 service text rendering is not supported yet. Standalone monitoring captures locally without sending an output.</p>
+        <details><summary>Rejected SCTE-104 messages</summary><pre id="scte-rejections" class="caption-history">No rejected messages.</pre><p class="subtle">Saved under runtime/scte-rejections.ndjson. Includes rejected ANC bytes for diagnosis; stream destinations are excluded.</p></details>
+        <details><summary>Recent caption text</summary><pre id="caption-history" class="caption-history">No decoded text yet.</pre></details>
+      </section>
+    </main>
+    <footer><span>SPANKVANC / ANC · VANC · CAPTIONS · CUES</span><span>Python engine · Linux first · Windows target</span></footer>
+  </div>
+</body></html>

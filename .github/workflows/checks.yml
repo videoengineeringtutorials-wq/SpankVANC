@@ -1,0 +1,31 @@
+name: Checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install media test dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg g++ pkg-config libavformat-dev libavcodec-dev libavutil-dev cmake
+      - name: Unit and loopback media tests
+        run: python -m unittest discover -s tests -v
+      - name: Native bench tests
+        run: |
+          cmake -S native -B build/native
+          cmake --build build/native -j2
+          ctest --test-dir build/native --output-on-failure
+      - name: Progressive encoder verification
+        run: python tools/verify_youtube.py --output-dir build/youtube-check
+      - name: UDP packet verification
+        run: python tools/verify_udp.py --output-dir build/udp-check
+      - name: Build public source archive
+        run: python tools/package_source.py
+      - name: Build public Windows app archive
+        run: python tools/package_windows.py
+      - name: Verify release asset contents
+        run: python tools/check_release_assets.py releases/*.zip

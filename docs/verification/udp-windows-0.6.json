@@ -1,0 +1,27 @@
+{
+  "datagrams": 336,
+  "datagram_sizes": [
+    188,
+    376,
+    564,
+    752,
+    940,
+    1128,
+    1316
+  ],
+  "packets": 2021,
+  "pids": {
+    "0x0": 17,
+    "0x11": 6,
+    "0x100": 1771,
+    "0x101": 204,
+    "0x102": 6,
+    "0x1000": 17
+  },
+  "unreferenced_pids": [],
+  "transport_errors": 0,
+  "scrambled_packets": 0,
+  "continuity_errors": 0,
+  "scte_sections": 6,
+  "windows_binary_under_wine": true
+}

@@ -1,0 +1,17 @@
+{
+  "windows_executable_ran_under_wine": true,
+  "decklink_options_present": true,
+  "sdk_target": "12.8",
+  "rejected_cue_recovery_verified": true,
+  "strict_rejection_stop_verified": true,
+  "windows_scte_decoder_crc_valid": true,
+  "muxed_splice_cues": 5,
+  "live_multi_command_sections": 2,
+  "preserved_source_nulls": 1,
+  "strip_cues": 0,
+  "scte_clock_shift_matches_video": 126000,
+  "caption_pass_frames": 75,
+  "caption_strip_frames": 0,
+  "caption_text_independently_decoded": true,
+  "windows_hardware_verified": false
+}

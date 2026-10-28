@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+runtime/
+build/
+releases/
+
+# Local credentials, captured media, SDKs and workstation notes are never published.
+settings.json
+diagnostics/
+*.ts
+*.flv
+*.ndjson
+*.exe
+*.dll
+*.a
+*.o
+*.so
+DeckLinkSDK/
+SDK/
+docs/WORKSTATION_HANDOFF.md
+docs/control-panel.png

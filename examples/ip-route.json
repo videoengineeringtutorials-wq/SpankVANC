@@ -1,0 +1,10 @@
+{
+  "name": "IP caption pass and clean outputs",
+  "input": {"kind": "file", "address": "/path/to/test-input.ts", "realtime": true},
+  "outputs": [
+    {"name": "Captioned H.264 UDP", "kind": "udp", "address": "udp://127.0.0.1:5000?pkt_size=1316", "captions": "pass", "scte": "strip", "video_codec": "h264", "enabled": true},
+    {"name": "Clean MPEG-2 UDP", "kind": "udp", "address": "udp://127.0.0.1:5002?pkt_size=1316", "captions": "strip", "scte": "strip", "video_codec": "mpeg2video", "enabled": true}
+  ],
+  "whisper": {"model": "small.en", "language": "en", "delay_ms": 6000, "audio_channel": 1},
+  "gpo": {"enabled": false, "port": "", "baud": 115200, "channel": 1, "pulse_ms": 250}
+}

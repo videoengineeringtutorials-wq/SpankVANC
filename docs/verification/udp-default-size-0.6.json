@@ -1,0 +1,23 @@
+{
+  "windows_binary_under_wine": true,
+  "pkt_size_option_omitted": true,
+  "datagram_sizes": [
+    64,
+    188,
+    252,
+    440,
+    628,
+    752,
+    784,
+    816,
+    912,
+    972,
+    1004,
+    1160,
+    1192,
+    1348,
+    1472
+  ],
+  "all_datagrams_ts_aligned": false,
+  "actual_user_multicast_capture_tested": false
+}
