@@ -292,7 +292,7 @@ if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}"""
         capture_helper(self.root).verify_capture(binary)
         self.command([settings['whisper_python_path'],'-I','-c','import whisper,numpy,torch; print("Speech recognition ready")'])
         self.ready=True; self.step='Setup complete'
-        self.log('Your app is ready. Open SpankVANC, enter a license key, then make a short test recording.')
+        self.log('Your app is ready. Open SpankVANC and make a short test recording.')
 
     def run(self, device):
         if os.name != 'nt': raise ValueError('This setup wizard installs on Windows 11 x64.')

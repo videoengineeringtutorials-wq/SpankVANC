@@ -10,7 +10,6 @@ from playwright.sync_api import sync_playwright,expect
 ROOT=Path(__file__).resolve().parent.parent
 sys.path[:0]=[str(ROOT),str(ROOT/'tests')]
 from spankvanc.engine import Engine,YOUTUBE_SERVER
-from license_fixture import LicensedEngine as Engine
 from spankvanc.server import make_handler
 from test_core import CAP,route
 
@@ -26,6 +25,9 @@ with tempfile.TemporaryDirectory() as folder,patch('spankvanc.engine.doctor',ret
             page.goto(f'http://127.0.0.1:{port}')
             card=page.locator('.output').first
             card.locator('[data-field="kind"]').select_option('youtube')
+            bitrate=card.get_by_label('YouTube video bitrate',exact=True)
+            expect(bitrate).to_have_value('14')
+            bitrate.select_option('8')
             server_field=card.get_by_label('YouTube RTMPS server',exact=True)
             key=card.get_by_label('YouTube stream key · hidden for privacy',exact=True)
             expect(server_field).to_have_value(YOUTUBE_SERVER)
@@ -34,7 +36,7 @@ with tempfile.TemporaryDirectory() as folder,patch('spankvanc.engine.doctor',ret
             expect(page.locator('#blockers')).to_contain_text('paste a YouTube stream key')
             key.fill('  fake-browser-key  ');page.locator('#save').click()
             expect(page.locator('#notice')).to_have_text('Route saved locally.')
-            page.reload();expect(key).to_have_value('fake-browser-key');expect(server_field).to_have_value(YOUTUBE_SERVER)
+            page.reload();expect(bitrate).to_have_value('8');expect(key).to_have_value('fake-browser-key');expect(server_field).to_have_value(YOUTUBE_SERVER)
             assert engine.config['outputs'][0]['address']==YOUTUBE_SERVER+'/fake-browser-key'
             server_field.fill('rtmps://b.rtmps.youtube.com:443/live2/')
             page.locator('#save').click();expect(page.locator('#notice')).to_have_text('Route saved locally.')

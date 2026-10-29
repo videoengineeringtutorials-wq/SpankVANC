@@ -11,7 +11,7 @@ import time
 import unittest
 
 from spankvanc.engine import DEFAULT
-from license_fixture import LicensedEngine as Engine
+from spankvanc.engine import Engine
 
 
 ROOT = Path(__file__).resolve().parent.parent

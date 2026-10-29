@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.12.1 — selectable YouTube bitrate
+
+- Add per-output 6, 8, 10 and 14 Mbit/s CBR choices. Preserve the existing
+  14 Mbit/s default, 1080p30 format, two-second GOP and independent ANC policies.
+- Apply the selected rate to target/min/max bitrate and twice that rate to VBV.
+  Save/reload and preflight display the selected value.
+- Compare local recording and RTMPS before attributing input overruns to the
+  GPU: upload backpressure can stall the shared capture/playout process.
+
+
+## 0.12.0 — unrestricted open-source application
+
+- Remove activation keys, online license checks, trial expiry and periodic
+  enforcement from startup, routing and source monitoring. Remove the activation
+  panel and API endpoints; existing license files are ignored.
+- Update setup and user instructions: install dependencies, then use the app.
+  MIT and third-party license notices remain included.
+- Discover Windows DeckLink duplex capabilities through read-only Desktop Video
+  COM attributes. Allow separate full-duplex input/output sockets with the same
+  device name; explain half-duplex channel conflicts before starting media.
+- Original Duo SDI (1) and (2) report half duplex on the tested driver; use
+  Input (1) → Output (2). Physical connectors and processing channels differ.
+
+
 ## 0.11.4 — reliable setup relaunch
 
 - Coordinate setup across Windows logon sessions using a per-user file lock, so a second launch opens the live page instead of overwriting its saved port.

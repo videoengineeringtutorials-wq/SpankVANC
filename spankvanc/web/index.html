@@ -7,15 +7,10 @@
   <link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
 </head>
 <body>
-  <aside class="rail"><a class="mark" href="/" aria-label="SpankVANC home">S<span>V</span></a><span class="rail-label">SIGNAL CONTROL</span><span class="version">0.11.4</span></aside>
+  <aside class="rail"><a class="mark" href="/" aria-label="SpankVANC home">S<span>V</span></a><span class="rail-label">SIGNAL CONTROL</span><span class="version">0.12.1</span></aside>
   <div class="workspace">
     <header><div><div class="eyebrow">BROADCAST TOOLKIT / LOCAL CONTROL</div><h1>Spank<span>VANC</span><span class="preview">DEVELOPMENT PREVIEW</span></h1></div><div class="status"><span class="dot" id="state-dot"></span><span id="route-status">Connecting</span><span class="host">LOCAL ENGINE</span></div></header>
-    <section class="panel" id="license-panel" aria-label="Application license">
-      <h2>Application license</h2>
-      <p id="license-status" role="status">Checking activation…</p>
-      <p class="subtle">A key unlocks 30 days from its first activation. Internet access is required at startup and during use. Expiry or failed online verification stops media processing.</p>
-      <form id="license-form"><label>License key<input id="license-key" type="password" autocomplete="off" spellcheck="false" maxlength="80" placeholder="SV1-…"></label><button id="license-activate" type="submit">Activate key</button> <button id="license-check" type="button">Check license</button></form>
-    </section>
+
     <div class="toolbar"><div><span class="section-index">01</span><h2>Signal routing</h2><span class="subtle">One source. Independent output policies.</span></div><div class="actions"><button id="save">Save route</button><button id="validate">Check route</button><button class="primary" id="start">Start route <span>↗</span></button><button class="danger" id="stop" disabled>Stop</button></div></div>
     <div id="notice" role="status" aria-live="polite" hidden></div>
     <main>

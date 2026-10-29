@@ -1,3 +1,9 @@
+# Retired activation service
+
+SpankVANC 0.12.0 removed application activation and makes no calls to this service.
+The server source below is historical support for 0.10.0–0.11.4 clients, excluded
+from new source/app packages. Do not deploy it for new installations.
+
 # Online licensing server
 
 The temporary backend targets the existing ASP.NET Framework 4.6 / SQL Server

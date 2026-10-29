@@ -1,0 +1,56 @@
+{
+  "version": "0.12.1",
+  "date": "2026-10-29",
+  "diagnosis": "14 Mbit/s RTMPS backpressure on tested upload/ingest path; not universal bitrate limit",
+  "tests": {
+    "live_youtube_only_14M": {
+      "steady_fps_approx": 24,
+      "speed_last": 0.802
+    },
+    "live_sdi_only": {
+      "steady_fps_approx": 30,
+      "capture_overruns": 0
+    },
+    "local_youtube_profile_14M": {
+      "frames": 600,
+      "media_seconds": 20,
+      "wall_seconds": 21.41,
+      "capture_overruns": 0
+    },
+    "rtmps_8M_only": {
+      "frames": 600,
+      "wall_seconds": 21.45,
+      "capture_overruns": 0
+    },
+    "rtmps_8M_with_sdi": {
+      "sdi_frames": 600,
+      "wall_seconds": 21.5,
+      "capture_overruns": 0
+    },
+    "live_combined_8M_cuda_recaptions": {
+      "model": "small.en",
+      "device": "cuda",
+      "first_observation_seconds": 60.4,
+      "fps": 30,
+      "capture_overruns": 0,
+      "sdi_buffer_underruns": 0,
+      "whisper_backlog_warnings": 0,
+      "caption_transcripts_in_first_observation": 19,
+      "followup_seconds_approx": 134,
+      "followup_speed": 0.992,
+      "followup_capture_frames": 4019,
+      "followup_recent_warnings": 0
+    }
+  },
+  "gpu": {
+    "cuda_worker_confirmed": true,
+    "model": "small.en"
+  },
+  "limits": [
+    "Isolated local-file and short 8 Mbit/s probes used a static caption journal; the subsequent combined-route observation used live CUDA Whisper",
+    "YouTube Studio health/reception has not been independently confirmed",
+    "Short observation; not a long-run soak or every-hardware guarantee"
+  ],
+  "automated_tests": 97,
+  "native_windows": "0.12.1 repair install passed all payload hashes; saved settings and route bytes preserved before selecting 8 Mbit/s"
+}

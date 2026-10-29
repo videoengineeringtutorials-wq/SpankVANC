@@ -41,7 +41,7 @@ with tempfile.TemporaryDirectory() as folder:
             page.locator('#install').click()
             expect(page.locator('#step')).to_have_text('Setup complete')
             expect(page.locator('#launch')).to_be_visible()
-            expect(page.locator('#ready')).to_contain_text('30-day period')
+            expect(page.locator('#ready')).to_contain_text('No activation key is required')
             assert not errors,errors
             page.screenshot(path='build/setup-preview.png',full_page=True)
             browser.close()

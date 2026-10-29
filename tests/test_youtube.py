@@ -44,3 +44,20 @@ class YouTubeTests(unittest.TestCase):
         self.assertIn('14M',youtube);self.assertIn('yadif=',youtube[youtube.index('-vf')+1])
         self.assertIn('+ilme+ildct',args[:args.index('capture.ts')])
         self.assertFalse(plan(validate(cfg),dict(LEGACY,youtube_profiles={}))['ready'])
+
+    def test_selectable_bitrate_applies_to_rate_control_and_persists(self):
+        for rate in (6, 8, 10, 14):
+            cfg = validate(self.config(youtube_stream_key='fake-key', youtube_bitrate_mbps=rate))
+            self.assertEqual(validate(cfg), cfg)
+            args = command(cfg, CAP)
+            for flag in ('-b:v', '-minrate:v', '-maxrate:v'):
+                self.assertEqual(args[args.index(flag)+1], f'{rate}M')
+            self.assertEqual(args[args.index('-bufsize:v')+1], f'{rate*2}M')
+            self.assertTrue(any(f'{rate} Mbit/s CBR' in n for n in plan(cfg, CAP)['notes']))
+            cfg['outputs'][0]['kind'] = 'file'
+            cfg['outputs'][0]['address'] = 'output.ts'
+            self.assertNotIn('youtube_bitrate_mbps', validate(cfg)['outputs'][0])
+        self.assertEqual(validate(self.config())['outputs'][0]['youtube_bitrate_mbps'], 14)
+        for invalid in (True, '8', None, 0, 7, 15, 8.0):
+            with self.assertRaises(ConfigError):
+                validate(self.config(youtube_bitrate_mbps=invalid))

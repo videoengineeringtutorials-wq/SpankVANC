@@ -103,11 +103,7 @@ below is pinned separately to 7.0.2 and SDK 12.8.
 6. A browser opens at **http://127.0.0.1:8877**. If it does not, enter that exact
    address in Edge/Chrome on this PC. Keep the console window open.
 
-7. Under **Application license**, enter the key supplied by the operator and click
-   **Activate key**. In 0.10.0+, routing unlocks only with a valid license. It
-   expires 30 days from first activation. Internet must remain available for
-   checks every minute; expiry, revocation or a failed check stops media. See
-   [license renewal and storage](LICENSING.md).
+7. No activation is required. Continue to the local recording test below.
 
 Python is already included. No pip, Python install, Git or GPU configuration
 is needed. Stop another SpankVANC session if the port is already in use.

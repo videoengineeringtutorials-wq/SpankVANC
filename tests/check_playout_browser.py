@@ -5,11 +5,13 @@ from pathlib import Path
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 from playwright.sync_api import sync_playwright, expect
-from license_fixture import LicensedEngine as Engine
+from spankvanc.engine import Engine
 from spankvanc.server import make_handler
 from test_decklink import DeckLinkOutputTests
 
 fixture = DeckLinkOutputTests(); fixture.setUp()
+same_name = fixture.cfg['input']['address']
+fixture.cap['decklink_outputs'].append({'name':same_name,'output':True,'duplex':'half'})
 fixture.cap.update(decklink_scte_output=True,decklink_options=["spankvanc_scte104"],recaption_decklink=True,recaption_runtime=True,whisper={"available":True,"cuda":True,"models":["small.en","turbo"]})
 with tempfile.TemporaryDirectory() as folder, patch('spankvanc.engine.doctor', return_value=fixture.cap):
     engine = Engine(Path(folder)); engine.config = fixture.cfg
@@ -24,6 +26,14 @@ with tempfile.TemporaryDirectory() as folder, patch('spankvanc.engine.doctor', r
             page.goto(f'http://127.0.0.1:{port}')
             pick = page.locator('[data-field="decklink_output"]')
             expect(pick).to_have_value('DeckLink Duo (2)')
+            expect(page.locator('#ready-tag')).to_have_text('READY')
+            expect(pick.locator('option', has_text='input in use (half duplex)')).to_have_count(1)
+            pick.select_option(same_name)
+            page.locator('#validate').click()
+            expect(page.locator('#ready-tag')).to_have_text('ACTION NEEDED')
+            expect(page.locator('#blockers')).to_contain_text('cannot capture and play out simultaneously')
+            pick.select_option('DeckLink Duo (2)')
+            page.locator('#validate').click()
             expect(page.locator('#ready-tag')).to_have_text('READY')
             page.locator('[data-field="captions"]').select_option('strip')
             page.locator('#save').click()

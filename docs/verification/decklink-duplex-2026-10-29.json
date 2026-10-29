@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-29",
+  "devices": [
+    {
+      "name": "DeckLink SDI (1)",
+      "model": "DeckLink SDI",
+      "duplex": "half",
+      "profile_id": 0,
+      "legacy_full_duplex": false
+    },
+    {
+      "name": "DeckLink SDI (2)",
+      "model": "DeckLink SDI",
+      "duplex": "half",
+      "profile_id": 0,
+      "legacy_full_duplex": false
+    },
+    {
+      "name": "DeckLink 4K Extreme",
+      "duplex": "full",
+      "legacy_full_duplex": true
+    }
+  ],
+  "verification": {
+    "source": "read-only Desktop Video COM query on Windows with SDK 12.8 probe and Python ctypes implementation",
+    "selected_engine_preflight": {
+      "same_half_duplex_subdevice": "blocked",
+      "SDI (1) to SDI (2)": "ready"
+    },
+    "settings_and_route_bytes": "preserved",
+    "physical_output_started": false
+  },
+  "limit": "Hardware same-subdevice route failed in user test; different-subdevice output reception remains unverified in this session."
+}

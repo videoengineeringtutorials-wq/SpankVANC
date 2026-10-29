@@ -1,5 +1,39 @@
 ## Guided setup 0.11.0 — October 28, 2026
 
+## 0.12.1 tester release — October 29, 2026
+
+97 unit/media tests passed. Browser checks cover YouTube bitrate selection and
+save/reload, activation-free operation, output policies, SCTE controls and guided
+setup. Native Windows repair verified every 0.12.1 payload hash and preserved
+settings/route bytes. The restored combined SDI/YouTube route with live
+small.en/CUDA captions held 30 fps at 8 Mbit/s over about 134 seconds with no
+recent capture/SDI/Whisper warnings; YouTube Studio health remains unconfirmed.
+
+The earlier local-file and short RTMPS isolation probes used a static caption
+journal. See [the detailed record](verification/youtube-bitrate-0.12.1.json) for
+the distinction between isolated probes, full live worker observation and
+downstream receiver coverage.
+
+
+## 0.12.0 application access — October 29, 2026
+
+96 unit/media tests passed after removing activation. New checks verify offline
+startup, ignored expired license state, save/refresh, route start and standalone
+source monitoring with the real Engine and no licensing network requests.
+Removed activation API endpoints return 404 with an authorized local token;
+local control-token and Origin protections remain enforced. Browser checks
+verify visible controls without activation, save/reload, no external requests,
+and the DeckLink output/channel explanation.
+
+Native Windows: every installed payload hash and embedded runtime/wizard import
+passed; isolated install → idle-wizard uninstall → same-folder reinstall → repair
+passed, preserving test settings and engine state. Three offline/no-activation
+Engine tests also passed under the bundled Windows Python. These checks do not
+claim a fresh prerequisite download/build or physical SDI receiver test.
+
+Earlier licensing results below describe retired 0.10.0–0.11.4 behavior.
+
+
 The application suite passed **93 tests** including setup archive traversal,
 verified download reuse, bad-download rejection, failed speech setup preserving
 old paths, isolated cache settings and invalid existing settings preservation.

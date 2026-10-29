@@ -37,9 +37,8 @@ It is an **online installer**, not an offline bundle of every dependency.
    media engine. The progress panel reports the current stage; **Setup details**
    shows the build log. Allow at least **12 GB of free space** and potentially
    an hour or more. Downloads/builds can be reused after a failed attempt.
-9. When ready, click **Open SpankVANC**. Enter the tester key in **Application
-   license → Activate key**, then make a short local recording before trying
-   SDI/network outputs. Installation does not start the 30-day license timer.
+9. When ready, click **Open SpankVANC** and make a short local recording before
+   trying SDI/network outputs. No activation key or trial timer is required.
 
 An operator or IT administrator may need to help with Blackmagic's downloads,
 managed-PC permissions or a driver/card compatibility problem. The wizard does
@@ -79,8 +78,7 @@ not bypass vendor agreements or Windows administrator controls.
 
 The installer does **not** contain FFmpeg binaries, SDK files, driver installers,
 Whisper/Torch binaries or model weights. It does not install the old standalone
-`breakit.py` application, change GPU drivers, start a media route, or activate a
-license. See [redistribution details](REDISTRIBUTION.md).
+`breakit.py` application, change GPU drivers, start a media route, or require application activation. See [redistribution details](REDISTRIBUTION.md).
 
 ## Help, retries and removal
 
@@ -94,7 +92,7 @@ before sharing them. Do not share license.json, saved settings/routes, SDK files
 recordings or keys intended to remain private.
 
 Uninstall removes packaged app files and its versioned shortcuts. It preserves
-settings, recordings, license state, speech/model downloads, local engine builds
+settings, recordings, speech/model downloads, local engine builds
 and the Linux environment. Their removal is a separate operator decision.
 
 The portable App ZIP and [manual beginner guide](WINDOWS_BEGINNER.md) remain

@@ -150,7 +150,7 @@ UNINSTALL
   RMDir "$SMPROGRAMS\SpankVANC VERSION"
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\SpankVANC-VERSION"
   ${EndIf}
-  MessageBox MB_OK "App files were removed. Local settings, recordings, license state, speech downloads and the Linux build environment are preserved." /SD IDOK
+  MessageBox MB_OK "App files were removed. Local settings, recordings, speech downloads and the Linux build environment are preserved." /SD IDOK
 SectionEnd
 '''.replace('VERSION',VERSION).replace('OUTPUT',quote(a.output)).replace('PAYLOAD',quote(payload)).replace('UNINSTALL',uninstall),encoding='utf-8')
         env=os.environ.copy()

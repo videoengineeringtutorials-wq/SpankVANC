@@ -1,0 +1,31 @@
+{
+  "version": "0.12.0",
+  "date": "2026-10-29",
+  "application_activation_required": false,
+  "licensing_network_requests": false,
+  "license_expiry_enforcement": false,
+  "validation": {
+    "python_unit_media_tests": 96,
+    "browser": [
+      "offline startup, controls, save/reload, no external requests",
+      "DeckLink output/policies, half-duplex explanation, save/reload, refresh",
+      "first-time setup, SDK selection, consent, ready state"
+    ],
+    "native_windows": [
+      "installer manifest SHA-256 verification",
+      "embedded runtime and setup imports",
+      "install, idle-wizard uninstall, reinstall and repair",
+      "settings and local-engine sentinel preservation",
+      "three offline/no-activation Engine tests"
+    ]
+  },
+  "limits": [
+    "Fresh user-driven prerequisite downloads/build not yet retested",
+    "Physical SDI reception not tested in this release check"
+  ],
+  "distribution": {
+    "ffmpeg_bundled": false,
+    "sdk_bundled": false,
+    "drivers_bundled": false
+  }
+}

@@ -112,7 +112,7 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
     names = set()
     for out in cfg["outputs"]:
         required = {"name", "kind", "address", "captions", "scte", "enabled"}
-        if not isinstance(out, dict) or not required <= set(out) or set(out) - required - {"video_codec", "youtube_server", "youtube_stream_key"}:
+        if not isinstance(out, dict) or not required <= set(out) or set(out) - required - {"video_codec", "youtube_server", "youtube_stream_key", "youtube_bitrate_mbps"}:
             raise ConfigError("Each output needs name, kind, address, captions, scte, enabled")
         if not isinstance(out["name"], str) or not 1 <= len(out["name"]) <= 100 or out["name"] in names:
             raise ConfigError("Output names must be nonempty and unique")
@@ -124,6 +124,9 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
         if not isinstance(out["video_codec"], str) or out["video_codec"] not in video_codec_options(out["kind"]):
             raise ConfigError(f"{out['name']}: {out['kind']} does not support video codec {out['video_codec']}")
         if out["kind"] == "youtube":
+            bitrate = out.setdefault("youtube_bitrate_mbps", 14)
+            if type(bitrate) is not int or bitrate not in (6, 8, 10, 14):
+                raise ConfigError("YouTube bitrate must be 6, 8, 10 or 14 Mbit/s")
             # Migrate saved combined destinations into the two editable fields.
             if "youtube_server" not in out and "youtube_stream_key" not in out:
                 address = out["address"]
@@ -147,7 +150,7 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
             out["youtube_server"], out["youtube_stream_key"] = server, key
             out["address"] = server + "/" + key if key else ""
         else:
-            out.pop("youtube_server", None); out.pop("youtube_stream_key", None)
+            out.pop("youtube_server", None); out.pop("youtube_stream_key", None); out.pop("youtube_bitrate_mbps", None)
         endpoint(out["kind"], out["address"], allow_empty=True)
         if out["kind"] == "udp" and out["address"]:
             parsed = urlsplit(out["address"])
@@ -312,6 +315,10 @@ def doctor() -> dict:
         result["decklink_devices"], result["decklink_error"] = ffmpeg_discover(deck_binary)
         if result["decklink_devices"]:
             result["decklink_discovery"] = "ffmpeg"
+    if os.name == "nt" and (result.get("decklink_input") or result.get("decklink_output")):
+        from .decklink_windows import discover_attributes, enrich_devices
+        attributes, result["decklink_attribute_error"] = discover_attributes()
+        enrich_devices(result, attributes)
     if result.get("decklink_input"):
         result["decklink_profile"] = "extended" if result.get("source_monitor") else "compatibility"
         if result["decklink_profile"] == "compatibility":
@@ -415,7 +422,14 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
             if not any(d["name"] == out["address"] for d in ports):
                 blockers.append(f"{label}: choose an available DeckLink output port")
             if src["kind"] == "decklink" and src["address"] == out["address"]:
-                blockers.append(f"{label}: choose a different port from the SDI input")
+                # A DeckLink name identifies a subdevice, not necessarily one
+                # physical socket. Full-duplex devices have separate IN/OUT.
+                devices = cap.get("decklink_devices", []) + ports
+                duplex = {d.get("duplex") for d in devices if d.get("name") == out["address"]} - {None, "unknown"}
+                if duplex & {"half", "simplex", "inactive"}:
+                    blockers.append(f"{label}: this DeckLink subdevice cannot capture and play out simultaneously in its active profile; choose another connector or configure Desktop Video Setup")
+                elif "full" not in duplex:
+                    notes.append(f"{label}: input and output share a DeckLink subdevice name. Separate IN/OUT sockets can operate together; duplex capability is unreported, so Desktop Video will validate availability when the route starts. For Duo 2 independent connectors, select different subdevices.")
             if out["captions"] in ("pass", "recaption") and not cap.get("decklink_caption_output"):
                 blockers.append(f"{label}: caption passthrough needs the extended VANC playout build")
             if out["captions"] == "strip" and not cap.get("caption_strip_filter", cap.get("source_monitor", False)):
@@ -464,7 +478,7 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
         if kind == "youtube":
             if not cap.get("youtube_profiles", {}).get("decklink" if src["kind"] == "decklink" else "general"):
                 blockers.append(f"{label}: YouTube requires RTMPS and the progressive-profile filters; update your selected FFmpeg")
-            notes.append(f"{label}: YouTube SDR preset: 1920×1080 progressive, 30 fps, H.264 High, 14 Mbit/s CBR, two-second GOP, square pixels, AAC stereo 44.1 kHz / 128 kbit/s. Interlaced inputs are deinterlaced. Use an SDR Rec.709 source; HDR tone mapping is not implemented.")
+            notes.append(f"{label}: YouTube SDR preset: 1920×1080 progressive, 30 fps, H.264 High, {out['youtube_bitrate_mbps']} Mbit/s CBR, two-second GOP, square pixels, AAC stereo 44.1 kHz / 128 kbit/s. Interlaced inputs are deinterlaced. Use an SDR Rec.709 source; HDR tone mapping is not implemented.")
             notes.append(f"{label}: enable Embedded 608/708 in YouTube Studio; one caption track")
     notes.append("TS and generic RTMP outputs use AAC-LC at 48 kHz / 192 kbit/s; YouTube uses stereo AAC-LC at 44.1 kHz / 128 kbit/s when source audio exists. TS carries AAC in ADTS; RTMP uses FLV AAC framing. SDI uses uncompressed video and PCM audio.")
     if any(o["kind"] == "decklink" and o["scte"] != "strip" for o in active):
@@ -550,12 +564,13 @@ def command(cfg: dict, capabilities=None, caption_journal=None) -> list[str]:
             args += ["-map", "0:d:0", "-c:d", "copy", "-avoid_negative_ts", "disabled"]
         youtube = out["kind"] == "youtube"
         if youtube:
+            bitrate = out.get("youtube_bitrate_mbps", 14)
             # fps=30 already establishes the clock before caption insertion.
             # A second CFR synchronizer can duplicate caption-bearing frames.
             video_sync = (["-fps_mode:v", "passthrough"] if out["captions"]=="recaption" else
                           ["-r:v", "30", "-fps_mode:v", "cfr"])
             args += ["-preset", "veryfast", "-profile:v", "high", "-level:v", "4.1",
-                     "-b:v", "14M", "-minrate:v", "14M", "-maxrate:v", "14M", "-bufsize:v", "28M",
+                     "-b:v", f"{bitrate}M", "-minrate:v", f"{bitrate}M", "-maxrate:v", f"{bitrate}M", "-bufsize:v", f"{bitrate * 2}M",
                      "-g", "60", "-keyint_min", "60", "-sc_threshold", "0", "-bf", "2", "-refs", "1",
                      "-x264-params", "nal-hrd=cbr:force-cfr=1:cabac=1", *video_sync,
                      "-enc_time_base:v", "1:30", "-field_order", "progressive",
@@ -614,10 +629,7 @@ def terminate_process(process):
 
 
 class Engine:
-    def __init__(self, state_dir: Path, license_client=None):
-        from .licensing import LicenseClient
-        self.license = license_client if license_client is not None else LicenseClient()
-        self.license.check(force=True)
+    def __init__(self, state_dir: Path):
         self.state_dir = state_dir
         self.config_path = state_dir / "route.json"
         self.lock = threading.RLock()
@@ -644,7 +656,6 @@ class Engine:
 
     def monitor_start(self, raw):
         with self.lock:
-            self.license.require()
             if self.process and self.process.poll() is None:
                 raise ConfigError("The running route already supplies the source monitor")
             if not self.capabilities.get("source_monitor"):
@@ -684,7 +695,6 @@ class Engine:
 
     def refresh_devices(self):
         with self.lock:
-            self.license.require()
             if self.process and self.process.poll() is None:
                 raise ConfigError("Stop the route before refreshing devices")
             if self.monitor_process and self.monitor_process.poll() is None:
@@ -693,7 +703,6 @@ class Engine:
         return self.state()
 
     def save(self, raw):
-        self.license.require()
         cfg = validate(raw)
         with self.lock:
             if self.process and self.process.poll() is None:
@@ -707,38 +716,11 @@ class Engine:
             self.config = cfg
         return cfg
 
-    def activate_license(self, key):
-        self.license.activate(key)
-        return self.state()
-
-    def check_license(self):
-        result = self.license.check(force=True)
-        if not result['valid']:
-            self.stop()
-            self.monitor_stop()
-        return self.state()
-
-    def license_tick(self):
-        if self.license.due():
-            result = self.license.check(force=True)
-            if not result['valid']:
-                with self.lock:
-                    active = ((self.process and self.process.poll() is None) or
-                              (self.monitor_process and self.monitor_process.poll() is None))
-                if active:
-                    self.logs.append('License verification failed; stopping media processing.')
-                    self.stop()
-                    self.monitor_stop()
-
     def state(self):
         with self.lock:
-            licensed = self.license.status()
             readiness = plan(self.config, self.capabilities)
-            if not licensed['valid']:
-                readiness['ready'] = False
-                readiness['blockers'].insert(0, licensed['message'])
             running = bool(self.process and self.process.poll() is None)
-            return {"license": licensed, "config": copy.deepcopy(self.config), "capabilities": self.capabilities,
+            return {"config": copy.deepcopy(self.config), "capabilities": self.capabilities,
                     "running": running, "last_exit": self.last_exit, "stopped_by_user": self.stop_requested, "logs": list(self.logs),
                     "plan": readiness, "scte_options": scte_matrix(),
                     "monitor_running": bool(self.monitor_process and self.monitor_process.poll() is None),
@@ -748,7 +730,6 @@ class Engine:
 
     def start(self, raw):
         with self.lock:
-            self.license.require()
             cfg = validate(raw)
             result = plan(cfg, self.capabilities)
             if not result["ready"]:
@@ -767,8 +748,6 @@ class Engine:
                 except (OSError,RuntimeError) as exc:raise ConfigError(str(exc)) from exc
             self.whisper_process=worker
             try:
-                # Model loading can take minutes. Revalidate before opening media.
-                self.license.require()
                 process = subprocess.Popen(command(cfg, self.capabilities,journal), stdout=worker.stdin if worker else subprocess.DEVNULL, stderr=subprocess.PIPE,
                                        text=True, errors="replace", stdin=subprocess.DEVNULL, **process_group_options())
             except Exception:

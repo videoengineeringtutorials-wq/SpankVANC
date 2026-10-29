@@ -1,4 +1,4 @@
-SpankVANC 0.11.0 — Windows 11 x64 app
+SpankVANC 0.12.1 — Windows 11 x64 app
 
 For an easier first install, use the Windows11-x64-Setup.exe release asset.
 It opens the guided setup; see docs\WINDOWS_INSTALLER.md. It downloads speech
@@ -9,9 +9,8 @@ Setup Guide.url opens the complete online guide.
 The offline text copy, docs\WINDOWS_BEGINNER.md, covers the full PC-and-card setup.
 It includes the AnimMouse FFmpeg download link and explains basic vs extended features.
 
-A license key and Internet access are required. Enter the key in Application
-license after opening the browser. It lasts 30 days from first activation;
-failed verification or expiry stops media processing. See docs\LICENSING.md.
+SpankVANC requires no activation key or ongoing online license checks.
+
 
 1. Extract this entire ZIP into a NEW writable folder.
 2. For manual setup, use Configure FFmpeg.cmd to select your ffmpeg.exe, then

@@ -130,8 +130,19 @@ static void list_device(IDeckLink* device, int index) {
     Com<IDeckLinkOutput> output;
     bool capture = device->QueryInterface(IID_IDeckLinkInput, input.out()) == S_OK;
     bool playback = device->QueryInterface(IID_IDeckLinkOutput, output.out()) == S_OK;
+    Com<IDeckLinkProfileAttributes> attributes;
+    int64_t duplex_mode = 0;
+    const char* duplex = "unknown";
+    if (device->QueryInterface(IID_IDeckLinkProfileAttributes, attributes.out()) == S_OK &&
+        attributes->GetInt(BMDDeckLinkDuplex, &duplex_mode) == S_OK) {
+        if (duplex_mode == bmdDuplexFull) duplex = "full";
+        else if (duplex_mode == bmdDuplexHalf) duplex = "half";
+        else if (duplex_mode == bmdDuplexSimplex) duplex = "simplex";
+        else if (duplex_mode == bmdDuplexInactive) duplex = "inactive";
+    }
     std::cout << "{\"device\":" << index << ",\"name\":" << display
               << ",\"input\":" << (capture ? "true" : "false")
+              << ",\"duplex\":" << quote(duplex)
               << ",\"output\":" << (playback ? "true" : "false") << ",\"modes\":[";
     Com<IDeckLinkDisplayModeIterator> modes;
     bool comma = false;

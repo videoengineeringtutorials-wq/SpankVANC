@@ -26,21 +26,23 @@ function renderOutputs(){
     const name=make('input');name.type='text';name.value=out.name;name.maxLength=100;name.setAttribute('aria-label','Output name');name.addEventListener('input',()=>{out.name=name.value;markDirty();});
     const remove=make('button','×','remove');remove.title='Remove output';remove.setAttribute('aria-label','Remove '+out.name);remove.disabled=config.outputs.length===1;remove.onclick=()=>{config.outputs.splice(index,1);markDirty();renderOutputs();};
     head.append(make('span',String(index+1).padStart(2,'0'),'output-number'),enabled,name,remove);card.append(head);
-    card.append(label('Output type',select(kinds,out.kind,value=>{out.kind=value;out.address='';delete out.youtube_server;delete out.youtube_stream_key;if(value==='youtube'){out.youtube_server='rtmps://a.rtmps.youtube.com:443/live2';out.youtube_stream_key='';}renderOutputs();},'kind')));
+    card.append(label('Output type',select(kinds,out.kind,value=>{out.kind=value;out.address='';delete out.youtube_server;delete out.youtube_stream_key;delete out.youtube_bitrate_mbps;if(value==='youtube'){out.youtube_server='rtmps://a.rtmps.youtube.com:443/live2';out.youtube_stream_key='';}renderOutputs();},'kind')));
     if(out.kind==='youtube'){
       const server=make('input');server.type='url';server.value=out.youtube_server||'rtmps://a.rtmps.youtube.com:443/live2';server.dataset.field='youtube_server';server.autocomplete='off';server.spellcheck=false;
       const key=make('input');key.type='password';key.value=out.youtube_stream_key||'';key.dataset.field='youtube_stream_key';key.autocomplete='off';key.spellcheck=false;key.placeholder='Paste your YouTube stream key';
       const update=()=>{out.youtube_server=server.value;out.youtube_stream_key=key.value.trim();out.address=out.youtube_stream_key?server.value.trim().replace(/\/+$/,'')+'/'+out.youtube_stream_key:'';markDirty();};
       server.addEventListener('input',update);key.addEventListener('input',update);
       card.append(label('YouTube RTMPS server',server),label('YouTube stream key · hidden for privacy',key));
-      card.append(make('p','YouTube: 1080p30 progressive SDR · H.264 14 Mbit/s CBR · 2-second keyframes · AAC stereo. The YouTube server is filled in. Paste only your stream key from YouTube Studio → Go live → Stream settings.','subtle'));
+      const bitrate=select({6:'6 Mbit/s',8:'8 Mbit/s',10:'10 Mbit/s',14:'14 Mbit/s'},String(out.youtube_bitrate_mbps??14),value=>out.youtube_bitrate_mbps=Number(value),'youtube_bitrate_mbps');bitrate.setAttribute('aria-label','YouTube video bitrate');
+      card.append(label('YouTube video bitrate',bitrate));
+      card.append(make('p','YouTube: 1080p30 progressive SDR · H.264 CBR · 2-second keyframes · AAC stereo. Choose a bitrate your upload can sustain with room for audio and other traffic. The YouTube server is filled in. Paste only your stream key from YouTube Studio → Go live → Stream settings.','subtle'));
     }else if(out.kind==='decklink'){
       const ports=currentState?.capabilities.decklink_outputs||(currentState?.capabilities.decklink_devices||[]).filter(d=>d.output);
       const choices={'':'Choose a DeckLink output port…'};
-      ports.forEach(d=>{choices[d.name]=d.name;});
+      ports.forEach(d=>{const sameInput=$('input-kind').value==='decklink'&&$('input-address').value===d.name;const conflict=sameInput&&['half','simplex','inactive'].includes(d.duplex);choices[d.name]=d.name+(conflict?' · input in use ('+d.duplex+' duplex)':d.duplex==='full'?' · simultaneous input/output supported':'');});
       if(out.address&&!(out.address in choices))choices[out.address]=out.address+' (unavailable)';
       card.append(label('DeckLink output port',select(choices,out.address,value=>out.address=value,'decklink_output')));
-      card.append(make('p','Choose a port configured for SDI output in Desktop Video Setup. Output follows the source video format. Use a different port from the input.','subtle'));
+      card.append(make('p','Choose a port configured for SDI output in Desktop Video Setup. Output follows the source video format. Separate IN/OUT sockets may share a device name only when the driver reports full duplex. A half-duplex subdevice can capture or play out, one direction at a time. On Duo 2, configure independent connectors in Desktop Video Setup and choose each connector’s subdevice.','subtle'));
     }else{
       const address=make('input');address.value=out.address;address.type=['rtmp','srt'].includes(out.kind)?'password':'text';address.autocomplete='off';address.spellcheck=false;address.placeholder=out.kind==='decklink'?'DeckLink output device name':out.kind==='file'?'/path/to/output.ts':out.kind+'://host:port';address.addEventListener('input',()=>{out.address=address.value;markDirty();});
       card.append(label('Destination'+(['rtmp','srt'].includes(out.kind)?' · hidden for privacy':''),address));
@@ -95,12 +97,8 @@ function renderPlan(plan){
   $('notes').replaceChildren(...plan.notes.map(text=>make('li',text)));
 }
 function renderState(state){
-  const licensed=state.license?.valid===true;
-  $('license-status').textContent=(state.license?.message||'Activation required.')+(state.license?.expires_at?' Expires '+new Date(state.license.expires_at*1000).toLocaleString()+'.':'');
-  document.querySelector('main').hidden=!licensed;
-  document.querySelector('.toolbar').hidden=!licensed;
   currentState=state;$('route-status').textContent=state.running?'Route running':state.last_exit!==null&&state.last_exit!==0&&!state.stopped_by_user?'Route stopped · check log':'Engine idle';$('state-dot').className='dot'+(state.running?' lime':'');
-  $('start').disabled=state.running||!licensed;$('stop').disabled=!state.running;$('save').disabled=state.running||!licensed;$('refresh-devices').disabled=state.running||!licensed;
+  $('start').disabled=state.running;$('stop').disabled=!state.running;$('save').disabled=state.running;$('refresh-devices').disabled=state.running;
   document.querySelectorAll('main input,main select:not(#caption-service),#add-output,.remove').forEach(el=>el.disabled=state.running);
   $('exit-code').textContent=state.running?'RUNNING':state.last_exit===null?'IDLE':state.stopped_by_user?'STOPPED':'EXIT '+state.last_exit;
   const log=$('logs');const bottom=log.scrollTop+log.clientHeight>=log.scrollHeight-30;log.textContent=state.logs.join('\n')||'No route started. Configure your source and check readiness.';if(bottom)log.scrollTop=log.scrollHeight;
@@ -121,7 +119,7 @@ function renderMonitor(data){
   $('scte-rejections').textContent=(m.rejections||[]).map(r=>`[${r.received_at}] ${r.reason}\nSource ${(r.source_pts90k/90000).toFixed(3)}s · rejected total ${r.total}\nANC: ${r.payload_hex}`).join('\n\n')||'No rejected messages.';
   $('cue-counts').classList.toggle('caption-error',m.conversion_error);
   $('caption-history').textContent=m.history.filter(h=>h.service===service).slice(-20).map(h=>`[${(h.pts90k/90000).toFixed(2)}s] ${h.text}`).join('\n\n')||'No decoded text yet.';
-  $('monitor-start').disabled=!currentState?.license?.valid||data.running||data.monitor_running||!currentState?.capabilities.source_monitor;
+  $('monitor-start').disabled=data.running||data.monitor_running||!currentState?.capabilities.source_monitor;
   $('monitor-stop').disabled=!data.monitor_running;
 }
 $('caption-service').onchange=()=>renderMonitor(latestMonitor);
@@ -137,7 +135,5 @@ $('decklink-device').addEventListener('change',()=>{$('input-address').value=$('
 $('decklink-mode').addEventListener('change',()=>{config.input.format_code=$('decklink-mode').value;markDirty();});
 $('refresh-devices').onclick=async()=>{try{const state=await api('devices',{});currentState=state;renderSource();renderOutputs();renderState(state);notice('Device list refreshed.');}catch(error){notice(error.message,true);}};
 async function boot(){try{const state=await api('state');scteOptions=state.scte_options;videoCodecOptions=state.video_codec_options;currentState=state;fill(state.config);renderState(state);renderPlan(state.plan);}catch(error){notice(error.message,true);$('route-status').textContent='Engine unavailable';}}
-$('license-form').onsubmit=async event=>{event.preventDefault();const button=$('license-activate');button.disabled=true;try{const key=$('license-key').value;$('license-key').value='';const state=await api('license/activate',{key});renderState(state);renderPlan(state.plan);notice('License activated.');}catch(error){notice(error.message,true);}finally{button.disabled=false;}};
-$('license-check').onclick=async()=>{try{const state=await api('license/check',{});renderState(state);renderPlan(state.plan);notice(state.license.message,!state.license.valid);}catch(error){notice(error.message,true);}};
 boot();
 setInterval(async()=>{try{const state=await api('state');if(!config)return;renderState(state);}catch(error){$('route-status').textContent='Engine unavailable';}},2000);

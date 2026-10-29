@@ -100,10 +100,31 @@ class DeckLinkOutputTests(TestCase):
         for update in ({'decklink_output': False}, {'decklink_caption_output': False}, {'decklink_outputs': []}):
             self.assertFalse(plan(self.cfg, dict(self.cap, **update))['ready'])
         self.cfg['outputs'][0]['address'] = DEVICE['name']
-        self.assertFalse(plan(self.cfg, dict(self.cap, decklink_outputs=[DEVICE]))['ready'])
+        self.assertFalse(plan(self.cfg, dict(self.cap, decklink_outputs=[dict(DEVICE, duplex='half')]))['ready'])
         self.cfg['outputs'][0]['address'] = self.port['name']
         self.cfg['outputs'][0]['scte'] = 'pass'
         self.assertFalse(plan(self.cfg, self.cap)['ready'])
+
+    def test_same_subdevice_separate_input_output_and_profiles(self):
+        name = DEVICE['name']
+        self.cfg['outputs'][0]['address'] = name
+        for duplex in ('full', None):
+            cap = dict(self.cap, decklink_outputs=[dict(name=name, output=True, duplex=duplex)])
+            result = plan(self.cfg, cap)
+            self.assertTrue(result['ready'], result['blockers'])
+            args = command(validate(self.cfg), cap)
+            self.assertEqual(args[args.index('-i') + 1], name)
+            self.assertEqual(args[-1], name)
+            if duplex is None:
+                self.assertTrue(any('unreported' in n for n in result['notes']))
+        for duplex in ('half', 'simplex', 'inactive'):
+            cap = dict(self.cap, decklink_outputs=[dict(name=name, output=True, duplex=duplex)])
+            self.assertFalse(plan(self.cfg, cap)['ready'])
+            # A different independent Duo 2 subdevice remains usable.
+            self.cfg['outputs'][0]['address'] = self.port['name']
+            cap['decklink_outputs'].append(self.port)
+            self.assertTrue(plan(self.cfg, cap)['ready'])
+            self.cfg['outputs'][0]['address'] = name
 
     def test_mixed_outputs_keep_policies_separate(self):
         self.cfg['outputs'].append(dict(route()['outputs'][0], name='TS', captions='strip'))

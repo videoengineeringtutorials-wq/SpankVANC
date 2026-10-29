@@ -1,8 +1,95 @@
-# Project handoff — October 28, 2026
+# Project handoff — October 29, 2026
 
-## Current state
+## 0.12.1 — YouTube upload backpressure diagnosis
 
-The source/app version is **0.11.4**, adding a guided online Windows installer.
+User reported poor YouTube health/disconnection on the fresh installation and
+low GPU use. Actual route: SDI capture → SDI + YouTube, both Whisper recaption.
+CUDA is confirmed by the worker ready marker, NVIDIA compute-process listing
+and growing caption journal; small.en is lighter than prior large-model use.
+
+14 Mbit/s YouTube-only fell to ~24 fps; SDI-only held source rate. Identical
+YouTube encoding to a local FLV produced all 600 frames with no capture overruns.
+8 Mbit/s RTMPS tests, alone and with SDI, also produced full frame counts without
+overruns. This indicates upload/ingest backpressure, even without observed TCP
+retransmissions. Initial combined route had repeated capture overruns and SDI
+underruns. User explicitly authorized stop/restart isolation tests.
+
+Added selectable per-output 6/8/10/14 Mbit/s YouTube CBR in 0.12.1, retaining
+14 as the backwards-compatible default. 97 unit/media tests passed. Controlled
+network probes used a static copy of the caption journal with routed PCM drained
+to null. Subsequent original-route testing used live small.en/CUDA recaptions
+on both SDI and YouTube: 30 fps without capture/SDI/Whisper warnings over about
+134 seconds, speed converging to 0.992x. YouTube Studio health remains unconfirmed.
+0.12.1 repair installation passed every payload hash and preserved settings/route
+bytes before changing only the YouTube rate to 8 Mbit/s. See the sanitized
+[verification record](verification/youtube-bitrate-0.12.1.json).
+
+
+## 0.12.0 — activation removed; clean installer retest
+
+User explicitly requested removing application license restrictions, uninstalling
+all existing workstation copies and trying a newly packaged installer from scratch.
+This supersedes the historical activation instructions below. App version is
+0.12.0. Removed the licensing client, enforcement/watchdog, activation API/UI
+and related operator/client tests. MIT and dependency notices remain intact.
+Existing license.json state is ignored. Setup needs Internet for dependencies;
+local routes/monitoring need no licensing service. Historical hosted backend
+source is retained only for old clients and excluded from new source packages;
+no unrelated hosted services were changed.
+
+Windows COM duplex discovery and profile-aware route checks are included.
+Local verification: 96 unit/media tests; browser checks for offline startup,
+visible controls, save/reload and no external requests, DeckLink output policies
+and half-duplex explanation, and setup wizard. Native Windows payload/import verification and the isolated
+install → idle-wizard uninstall → same-folder reinstall → repair checks passed.
+The embedded Windows runtime passed three offline/no-activation Engine tests.
+
+
+## Windows duplex diagnosis — October 29, 2026 (supersedes initial correction)
+
+User's same-subdevice capture/playout failed at EnableVideoOutput with VANC.
+A read-only SDK 12.8 COM query on the actual Windows workstation reports:
+DeckLink SDI (1) and (2): half duplex, profile ID 0, two subdevices; legacy
+SupportsFullDuplex=false on both. DeckLink 4K Extreme: full duplex, legacy
+SupportsFullDuplex=true. Separate physical sockets do not establish simultaneous
+capture/playout support. Do not claim same-subdevice I/O works on this card.
+
+Added bounded child-process Windows COM attribute discovery in
+`spankvanc/decklink_windows.py`, merged by exact display name into FFmpeg
+input/output discovery. No SDK/compiler needed at application runtime. UI labels
+same-subdevice half-duplex conflicts; preflight blocks them. Full-duplex devices
+remain permitted. No profiles or drivers are changed. Existing VANC requirement
+remains enforced so caption/SCTE pass cannot silently lose metadata.
+
+Installed Python/UI updates with backups and hash checks, preserving settings
+and saved route bytes. Native Windows discovery and preflight using the actual
+selected local engine verified same-subdevice rejection and SDI (1) → SDI (2)
+readiness. No physical output stream was started during diagnosis. App restart
+needed to load this update. Verification: 105 Python tests and browser port/policy,
+collision explanation, save/reload and refresh checks passed.
+
+## DeckLink connector correction — October 29, 2026
+
+Removed the blanket same-name SDI input/output rejection: a device name can
+represent a full-duplex subdevice with separate IN and OUT sockets. SDK discovery
+now reports active duplex state. Known half/simplex/inactive profiles still block
+same-subdevice capture/playout. With FFmpeg-only discovery duplex is unknown:
+preflight permits the selection with a note and the driver validates it at start.
+No model-name heuristics or automatic profile changes are used. Duo 2 independent
+connectors remain individually selectable as discovered subdevices; paired profiles
+must be configured in Desktop Video Setup.
+
+Verification: 102 Python tests passed, including same-name full/unknown duplex,
+half/simplex/inactive rejection and different-subdevice selection. Linux SDK
+native diagnostic syntax check passed. Physical I/O remains untested. Installed the Python/UI correction on the Windows workstation after reconnecting
+at its updated address, with backups and matching SHA-256 hashes. Settings and
+route hashes were preserved; native Python compilation passed. The active SDI
+route was left running. Restart SpankVANC to load the correction; physical
+same-subdevice IN/OUT testing remains pending.
+
+## Historical 0.11.4 state (superseded by 0.12.0)
+
+The source/app version was **0.11.4**, adding a guided online Windows installer.
 The working Windows workstation remains on 0.10.0 with saved settings,
 route and selected 0.9.1 media engine preserved. No app or media process was
 started, and the owner license was not activated during installation.

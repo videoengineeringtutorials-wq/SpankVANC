@@ -72,7 +72,7 @@ class CaptionMonitorTests(unittest.TestCase):
         import io,json,tempfile
         from pathlib import Path
         from unittest.mock import Mock
-        from license_fixture import LicensedEngine as Engine
+        from spankvanc.engine import Engine
         with tempfile.TemporaryDirectory() as folder,patch('spankvanc.engine.doctor',return_value={}):
             engine=Engine(Path(folder))
             event={'rejected_total':1,'last_rejection':'unsupported operation 0x777','last_rejected_hex':'087777','last_rejected_pts90k':90000}

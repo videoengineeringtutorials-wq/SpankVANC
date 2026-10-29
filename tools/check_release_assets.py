@@ -29,9 +29,12 @@ def check(path):
    if tuple(map(int,manifest['app_version'].split('.'))) >= (0,9,1):
     for required in ('START HERE.html','docs/WHISPER.md','docs/SDI_SCTE.md','app/spankvanc/whisper_worker.py','build-support/tools/patch_ffmpeg_whisper.py','build-support/native/vf_spankvanc_cc.c'):
      assert prefix+required in names,'Missing installation/runtime support: '+required
-   if tuple(map(int,manifest['app_version'].split('.'))) >= (0,10,0):
+   if tuple(map(int,manifest['app_version'].split('.'))) >= (0,10,0) and tuple(map(int,manifest['app_version'].split('.'))) < (0,12,0):
     for required in ('app/spankvanc/licensing.py','docs/LICENSING.md'):
      assert prefix+required in names,'Missing licensing support: '+required
+   if tuple(map(int,manifest['app_version'].split('.'))) >= (0,12,0):
+    assert prefix+'app/spankvanc/licensing.py' not in names,'Obsolete activation client bundled'
+    assert b'license-panel' not in archive.read(prefix+'app/spankvanc/web/index.html'),'Obsolete activation UI bundled'
    if tuple(map(int,manifest['app_version'].split('.'))) >= (0,11,0):
     for required in ('setup/setup.py','setup/dependencies.json','setup/web/index.html','setup/web/app.js','setup/web/style.css'):
      assert prefix+required in names,'Missing guided setup: '+required

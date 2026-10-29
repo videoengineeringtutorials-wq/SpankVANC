@@ -5,14 +5,16 @@ from pathlib import Path
 import sys
 import tempfile
 import threading
+from unittest.mock import patch
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from license_fixture import LicensedEngine as Engine
+from spankvanc.engine import Engine
 from spankvanc.server import make_handler
+from test_core import CAP
 
-with tempfile.TemporaryDirectory() as temporary:
+with tempfile.TemporaryDirectory() as temporary, patch('spankvanc.engine.doctor', return_value=dict(CAP, scte_runtime=True, decklink_scte_output=True)):
     engine = Engine(Path(temporary))
     server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(engine, 'browser-test', 0))
     port = server.server_port
@@ -28,7 +30,7 @@ with tempfile.TemporaryDirectory() as temporary:
             page.goto(f'http://127.0.0.1:{port}')
             page.get_by_text('Engine idle', exact=True).wait_for()
             def options(index=0):
-                return page.locator('.output').nth(index).locator('select[data-field="scte"] option').evaluate_all('(items) => Object.fromEntries(items.map(item => [item.value, item.textContent]))')
+                return page.locator('.output').nth(index).locator('select[data-field="scte"] option').evaluate_all('(items) => Object.fromEntries(items.map(item => [item.value, item.textContent.split(" · not available yet")[0]]))')
             def output(kind, index=0):
                 page.locator('.output').nth(index).locator('select[data-field="kind"]').select_option(kind)
             def codecs(index=0):
