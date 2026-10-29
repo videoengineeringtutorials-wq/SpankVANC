@@ -41,9 +41,10 @@ def main(argv=None):
  a=p.parse_args(argv);sdk=a.sdk_include.resolve();sdk_version(sdk)
  if sys.platform!='linux':raise ValueError('Run this helper inside Ubuntu 24.04 / WSL2; use Build Extended Capture.cmd on Windows.')
  if a.install_deps and not a.check_only:
-  subprocess.run(['sudo','-v'],check=True)
-  subprocess.run(['sudo','apt-get','update'],check=True)
-  subprocess.run(['sudo','apt-get','install','-y',*PACKAGES],check=True)
+  prefix=[] if os.geteuid()==0 else ['sudo']
+  if prefix:subprocess.run(['sudo','-v'],check=True)
+  subprocess.run([*prefix,'apt-get','update'],check=True)
+  subprocess.run([*prefix,'apt-get','install','-y',*PACKAGES],check=True)
  required=['autoconf','automake','libtoolize','git','curl','cmake','pkg-config','nasm','perl','make','x86_64-w64-mingw32-gcc','x86_64-w64-mingw32-g++','x86_64-w64-mingw32-windres']
  missing=[name for name in required if not shutil.which(name)]
  widl=shutil.which('x86_64-w64-mingw32-widl') or shutil.which('widl')

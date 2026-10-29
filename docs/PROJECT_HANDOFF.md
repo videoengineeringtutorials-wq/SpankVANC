@@ -2,8 +2,8 @@
 
 ## Current state
 
-The source/app version is **0.10.0**, adding online 30-day licensing. The
-Windows workstation was subsequently updated to 0.10.0 with saved settings,
+The source/app version is **0.11.0**, adding a guided online Windows installer.
+The working Windows workstation remains on 0.10.0 with saved settings,
 route and selected 0.9.1 media engine preserved. No app or media process was
 started, and the owner license was not activated during installation.
 
@@ -27,6 +27,25 @@ Shared installation IDs are saved random state, not hardware fingerprints.
   `../licensing/README.md` for implementation and operator steps.
 - Issued keys, operator SQL, database credentials and deployment scripts remain
   private, outside the checkout. Never include license.json in packages.
+
+## 0.11.0 guided setup
+
+- `tools/package_setup.py` wraps the audited app-only ZIP in a per-user NSIS
+  EXE. It installs into a new versioned folder, adds shortcuts/uninstaller, and
+  opens `setup/setup.py` with a local browser wizard.
+- The wizard automates isolated speech dependencies/model caching and a local
+  engine build under a dedicated WSL 1 Ubuntu Base environment. SDK selection
+  uses a native file dialog and safe ZIP extraction. No Linux user account or
+  typed build commands are required. Windows UAC/reboot and vendor downloads
+  remain visible user steps; no vendor license is accepted automatically.
+- Managed speech uses Python 3.13.12, Torch 2.7.1, Whisper 20250625 and small.en.
+  `whisper_model_cache` in settings points the worker at its isolated models.
+  Existing Python/legacy Whisper installations and saved routes are preserved.
+- Installer is experimental and unsigned. Windows-native extraction, CPU speech
+  setup/recognition and browser/unit checks are recorded separately from clean-PC
+  driver/UAC/reboot coverage and the optional GPU profile. See `WINDOWS_INSTALLER.md`.
+- No media engine, SDK, driver, Torch/Whisper binary or model is bundled.
+  Public artifacts remain subject to `REDISTRIBUTION.md`.
 
 ## Prior deployed media state
 

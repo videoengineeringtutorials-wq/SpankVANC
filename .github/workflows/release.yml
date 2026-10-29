@@ -1,9 +1,9 @@
-name: App-only release
+name: App and guided setup release
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag to package (for example v0.6.0)
+        description: Existing v0.11.0-or-newer tag to package
         required: true
 permissions:
   contents: read
@@ -30,17 +30,18 @@ jobs:
           assert tomllib.load(open('pyproject.toml','rb'))['project']['version'] == __version__
           PY
       - name: Install media test dependencies
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg g++ pkg-config libavformat-dev libavcodec-dev libavutil-dev
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg g++ pkg-config libavformat-dev libavcodec-dev libavutil-dev nsis
       - name: Test source
         run: python -m unittest discover -s tests -v
       - name: Package app and source (no media engine)
         run: |
           python tools/package_source.py
           python tools/package_windows.py
+          python tools/package_setup.py
           python tools/check_release_assets.py releases/*.zip
       - name: Create draft prerelease for review
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          gh release create "$RELEASE_TAG" releases/*.zip releases/*.sha256 --verify-tag --draft --prerelease --title "SpankVANC $RELEASE_TAG" --notes-file CHANGELOG.md
+          gh release create "$RELEASE_TAG" releases/*.zip releases/*-Setup.exe releases/*.exe.json releases/*.sha256 --verify-tag --draft --prerelease --title "SpankVANC $RELEASE_TAG" --notes-file CHANGELOG.md

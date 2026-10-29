@@ -1,3 +1,23 @@
+## Guided setup 0.11.0 — October 28, 2026
+
+The application suite passed **93 tests** including setup archive traversal,
+verified download reuse, bad-download rejection, failed speech setup preserving
+old paths, isolated cache settings and invalid existing settings preservation.
+The browser wizard passed SDK-selection, consent and completion checks.
+
+A native Windows installer smoke test extracted the payload into an isolated
+folder and verified every manifest file. A separate Python 3.13.12 CPU install
+loaded Torch 2.7.1/Whisper 20250625 and its small.en model, then transcribed
+synthetic Windows speech into 62 CC1 pairs. No program audio was used and the
+working application/legacy Python were left alone. A fresh Ubuntu Base 24.04.5
+WSL 1 environment also built and verified the Windows engine without using the
+old Linux cache. See
+[guided setup verification](verification/setup-0.11.0.json) for final coverage.
+
+A clean Windows PC walkthrough covering vendor driver installation, first-time
+WSL/UAC/reboot behavior, and the optional GPU profile remains required. Do not
+claim this installer is fully unattended or universally hardware verified.
+
 ## Shared licensing backend update — October 28, 2026
 
 The full application/operator suite passed **85 tests**.

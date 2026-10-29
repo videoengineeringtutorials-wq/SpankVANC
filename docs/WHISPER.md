@@ -40,6 +40,11 @@ remains CPU-based; this selection controls speech recognition only.
 
 ## Windows installation from scratch
 
+The [0.11.0 guided setup](WINDOWS_INSTALLER.md) automates an isolated CPU speech
+installation and small.en model download. The manual steps below remain available.
+Installer-created settings also include `whisper_model_cache`, which keeps its
+models separate from another Whisper installation.
+
 This is optional. Skip it for caption passthrough or stripping. Finish the
 [Windows beginner guide](WINDOWS_BEGINNER.md), including the **0.9.1 local
 extended engine build**, before testing generated captions.

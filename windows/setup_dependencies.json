@@ -1,0 +1,22 @@
+{
+  "python": {
+    "url": "https://www.python.org/ftp/python/3.13.12/python-3.13.12-amd64.zip",
+    "sha256": "9089c1f0d720f7c913cd4caf600e6761b0a4d5b90ccf34229fe418ff64a5da5f",
+    "filename": "python-3.13.12-amd64.zip"
+  },
+  "ubuntu": {
+    "url": "https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.5-base-amd64.tar.gz",
+    "sha256": "e77b6f10c2590cef872b33ee9f635a0e3fd1f57fb074c0e52b5c7f56147a0c86",
+    "filename": "ubuntu-base-24.04.5-base-amd64.tar.gz"
+  },
+  "torch": "2.7.1",
+  "whisper": "20250625",
+  "model": "small.en",
+  "cpu_index": "https://download.pytorch.org/whl/cpu",
+  "cuda_index": "https://download.pytorch.org/whl/cu118",
+  "vcredist": {
+    "url": "https://download.visualstudio.microsoft.com/download/pr/990c720a-46ce-4dc7-87b9-c2eb615d34b9/CC0FF0EB1DC3F5188AE6300FAEF32BF5BEEBA4BDD6E8E445A9184072096B713B/VC_redist.x64.exe",
+    "sha256": "cc0ff0eb1dc3f5188ae6300faef32bf5beeba4bdd6e8e445a9184072096b713b",
+    "filename": "vc_redist.x64.exe"
+  }
+}

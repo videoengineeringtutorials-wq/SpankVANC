@@ -12,7 +12,7 @@ def wsl_executable():
     return str(installed) if installed.is_file() else 'wsl.exe'
 
 def wsl_path(value,distro=DISTRO):
-    return subprocess.check_output([wsl_executable(),'-d',distro,'--exec','wslpath','-a',str(value).replace('\\','/')],text=True,encoding='utf-8').strip()
+    return subprocess.check_output([wsl_executable(),'-d',distro,'--exec','wslpath','-a',str(value).replace('\\','/')],text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0).strip()
 
 def save_capture_path(root,binary):
     settings_path=root/'settings.json'
@@ -25,7 +25,7 @@ def save_capture_path(root,binary):
 
 def verify_capture(binary):
     def query(*args):
-        result=subprocess.run([str(binary),'-hide_banner',*args],capture_output=True,text=True,errors='replace',timeout=30)
+        result=subprocess.run([str(binary),'-hide_banner',*args],capture_output=True,text=True,errors='replace',timeout=30,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
         if result.returncode:raise ValueError('The new executable could not run. Your saved engine path was not changed.\n'+result.stderr[-1000:])
         return result.stdout+result.stderr
     version=query('-version');options=query('-h','demuxer=decklink');filters=query('-filters');protocols=query('-protocols').split()
@@ -36,6 +36,8 @@ def verify_capture(binary):
     if not {'yadif','scale','pad','setsar','fps','setfield','sidedata'}<=names or 'rtmps' not in protocols:raise ValueError('YouTube filters/RTMPS are missing; configuration was not changed.')
     if 'spankvanc_cc' not in names or 'f32le' not in query('-muxers'):
         raise ValueError('Whisper filter/raw audio tap is missing; configuration was not changed.')
+    if 'continuous field-slotted' not in query('-h','filter=spankvanc_cc'):
+        raise ValueError('Corrected caption framing is missing; rebuild the engine with current support.')
     print(version.splitlines()[0])
 
 def main(argv=None):

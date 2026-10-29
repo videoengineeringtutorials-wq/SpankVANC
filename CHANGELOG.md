@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.11.0 — guided public Windows setup
+
+- Add a single online Setup EXE with per-user app installation, shortcuts,
+  safe uninstall, and a browser wizard for dependencies and local compilation.
+- Select/extract a user-downloaded SDK ZIP, install an isolated Python/Torch/
+  Whisper runtime and model cache, provision a dedicated WSL 1 build environment,
+  and save only verified engine/runtime paths. Remember completed work for retry.
+- Keep compiled FFmpeg, SDK, drivers and speech/model binaries out of public
+  payloads. Vendor downloads/agreements, administrator approval and reboot may
+  still be required. CPU is default; the optional CUDA path is experimental.
+- Add native Windows installer verification in CI and setup failure/preservation
+  checks. Existing media/caption behavior and licensing contracts are retained.
+
 ## Server update — shared tester keys (0.10.0-compatible)
 
 - Add an explicit shared-key type with separate 30-day activation windows per

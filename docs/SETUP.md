@@ -35,7 +35,8 @@ route with missing requirements. Do not bypass the checks.
    The original Duo test system used Desktop Video 12.8.
 4. Supply your separately obtained/built `ffmpeg.exe`. Keep any required DLLs
    alongside it. Use **Configure FFmpeg.cmd** or enter the path when prompted by
-   **Start SpankVANC.cmd**. No GPU setup is needed.
+   **Start SpankVANC.cmd**. In 0.11.0, use Configure FFmpeg.cmd first for this
+   manual path; an unconfigured Start opens the guided wizard. No GPU setup is needed.
 5. Open **http://127.0.0.1:8877** if the browser does not open. Keep the console
    running. Ctrl+C stops the application.
 6. Choose the detected SDI device and input mode. `Hi59` means 1080i59.94 fields/s

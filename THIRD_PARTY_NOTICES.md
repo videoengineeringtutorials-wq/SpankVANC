@@ -27,3 +27,11 @@ the app-only distribution.
 Whisper replacement runs an optional, separately installed OpenAI Whisper
 (MIT) and PyTorch runtime; these dependencies and model weights are not bundled.
 The legacy audioWhisper/serial encoder scripts are neither modified nor bundled.
+
+The guided Setup EXE is built with [NSIS](https://nsis.sourceforge.io/License),
+which uses the zlib/libpng license with separately documented bundled components.
+Its payload remains app-only. Python 3.13.12 for speech, Torch 2.7.1, Whisper
+20250625, Ubuntu Base 24.04.5, models and any Microsoft C++ runtime are downloaded
+locally from their upstream sources; their notices are retained in those
+installations. The installer does not grant redistribution rights to the locally
+built FFmpeg engine or the user-supplied Blackmagic SDK/driver.

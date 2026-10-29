@@ -4,7 +4,7 @@ A local broadcast routing and monitoring app for DeckLink SDI, captions and
 SCTE cues. Python serves a browser control panel on **127.0.0.1:8877**; media
 processing runs in a separately installed FFmpeg. Media and control remain local; 0.10.0 requires an online license check.
 
-**Version 0.10.0 — experimental.** Test on a spare route before using a live
+**Version 0.11.0 — experimental.** Test on a spare route before using a live
 program. CPU encoding is used; an NVIDIA GPU is not required.
 
 ## Get running
@@ -13,6 +13,14 @@ program. CPU encoding is used; an NVIDIA GPU is not required.
 key in **Application license** after launching. It unlocks 30 days from first
 activation; expiry, revocation or a failed online check stops media processing.
 See [licensing and renewal](docs/LICENSING.md).
+
+**Public Windows tester? Download the Windows11-x64-Setup.exe from
+[Releases](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases).**
+It installs the app and opens a guided wizard for isolated Python/Whisper/Torch,
+build prerequisites and a local DeckLink engine build. See the
+[step-by-step installer guide](docs/WINDOWS_INSTALLER.md). Blackmagic downloads,
+administrator approval and a restart may still be needed. This is an online
+installer; no compiled FFmpeg, SDK or driver is bundled.
 
 **New Windows user with just a PC and a card? Start with the
 [complete beginner setup guide](docs/WINDOWS_BEGINNER.md).** It covers downloads, card drivers, the first recording, the local engine build,

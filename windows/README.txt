@@ -1,4 +1,8 @@
-SpankVANC 0.10.0 — Windows 11 x64 app
+SpankVANC 0.11.0 — Windows 11 x64 app
+
+For an easier first install, use the Windows11-x64-Setup.exe release asset.
+It opens the guided setup; see docs\WINDOWS_INSTALLER.md. It downloads speech
+recognition and builds your media engine locally. It is not an offline bundle.
 
 START HERE: double-click START HERE.html for the included quick-start page.
 Setup Guide.url opens the complete online guide.
@@ -10,7 +14,8 @@ license after opening the browser. It lasts 30 days from first activation;
 failed verification or expiry stops media processing. See docs\LICENSING.md.
 
 1. Extract this entire ZIP into a NEW writable folder.
-2. Run Start SpankVANC.cmd and select your separately supplied ffmpeg.exe.
+2. For manual setup, use Configure FFmpeg.cmd to select your ffmpeg.exe, then
+   run Start SpankVANC.cmd. An unconfigured app opens guided setup instead.
 3. Open http://127.0.0.1:8877 on this PC if the browser does not open.
 4. Select the input/device/mode, check a local file route, and test briefly.
    Choose a new output filename; recordings are not overwritten.

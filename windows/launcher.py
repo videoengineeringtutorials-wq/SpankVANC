@@ -51,6 +51,8 @@ def prepare_environment(binary,settings,root=ROOT):
     os.environ['SPANKVANC_FFMPEG']=binary
     if settings.get('whisper_python_path'):
         os.environ['SPANKVANC_WHISPER_PYTHON']=settings['whisper_python_path']
+    if settings.get('whisper_model_cache'):
+        os.environ['SPANKVANC_WHISPER_MODEL_CACHE']=settings['whisper_model_cache']
     # Override separately only when the user supplied a custom capture binary.
     bundled=root/'capture-ffmpeg/ffmpeg.exe'
     capture=settings.get('decklink_ffmpeg_path') or os.environ.get('SPANKVANC_DECKLINK_FFMPEG')
@@ -121,6 +123,11 @@ def main(argv=None):
             configure(settings);return 0
         binary=find_ffmpeg(settings)
         if not binary:
+            root_setup=ROOT/'setup/setup.py'
+            if root_setup.is_file():
+                subprocess.Popen([str(ROOT/'python/pythonw.exe'),str(root_setup)],cwd=ROOT)
+                print('Opening guided setup. Use Configure FFmpeg.cmd for the manual basic engine path.')
+                return 0
             settings=configure(settings);binary=find_ffmpeg(settings)
         if not binary:raise ValueError('FFmpeg was not found.')
         prepare_environment(binary,settings)

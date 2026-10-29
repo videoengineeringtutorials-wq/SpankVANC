@@ -72,7 +72,7 @@ def main():
     if device=='cuda' and not torch.cuda.is_available():raise RuntimeError('CUDA was requested but is unavailable')
     if args.model not in whisper.available_models():raise RuntimeError('Model is not supported by this Whisper installation')
     torch.set_num_threads(min(8,os.cpu_count() or 1))
-    model=whisper.load_model(args.model,device=device)
+    model=whisper.load_model(args.model,device=device,download_root=os.environ.get('SPANKVANC_WHISPER_MODEL_CACHE'))
     print('Whisper ready: '+args.model+' / '+device,flush=True)
     # Parent waits for this marker before it opens capture hardware.
     with open(args.ready,'w',encoding='utf-8') as f:f.write(device)

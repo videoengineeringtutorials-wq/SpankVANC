@@ -21,6 +21,14 @@ third-party notices and obtain their chosen engine separately.
 
 ## Public release contents
 
+The 0.11.0 **Setup.exe** contains the same audited app/runtime/build support and
+an online setup wizard. It downloads a separate official Python, CPU or optional
+CUDA PyTorch/Whisper packages, a model, and an Ubuntu Base build environment to
+the tester's machine. User-supplied SDK files are used only there. The engine is
+compiled locally. Microsoft C++ runtime and Blackmagic driver installation use
+their vendor installers when needed; Blackmagic drivers/SDK are not mirrored.
+This bootstrapper does not relax the existing binary redistribution policy.
+
 Publish SpankVANC's source, setup/build instructions and an app-only Windows ZIP
 containing the official CPython embedded runtime and its intact license notices.
 Do not upload historical Extended ZIPs, capture binaries, SDK bundles, driver
@@ -74,7 +82,7 @@ Sources: [FFmpeg 7.0.2 configure](https://github.com/FFmpeg/FFmpeg/blob/n7.0.2/c
 | MinGW-w64 / GCC runtimes | Multiple notices and runtime exceptions | Build tools/local dependencies only; do not assume one license covers the toolchain |
 | Existing user FFmpeg | Depends on its exact configuration, including nonfree libraries | User supplied; detecting it does not certify its redistribution rights |
 | TSDuck, Wine, Playwright, FFmpeg dev libraries | Separate tool licenses | Optional development/test tools, excluded from app/source assets |
-| Whisper/models, NVIDIA, other SDKs | Not used by this release | No models, GPU runtime, NVENC SDK or transcription engine included |
+| Whisper/models, PyTorch, NVIDIA runtimes | Downloaded locally by guided setup; licenses/notices remain with upstream packages | No weights, Torch/CUDA runtime or transcription engine bundled in public assets |
 
 Codec patent licensing is separate from copyright/open-source licenses and varies
 by use and jurisdiction. This project does not grant codec patent rights.
@@ -82,7 +90,8 @@ by use and jurisdiction. This project does not grant codec patent rights.
 ## Before any public release
 
 1. Run tests and build the source/app-only packages using the checked-in tools.
-2. Confirm assets contain no FFmpeg executables, SDK files, state or credentials.
+2. Confirm ZIP payloads and the Setup EXE stage contain no FFmpeg executables,
+   SDK files, state or credentials; validate the native installer payload hashes.
 3. Keep CPython's license and package origin/hash manifest intact.
 4. Publish checksums, release notes, tested hardware and known limitations.
 5. If introducing a binary dependency later, review its exact build, license,

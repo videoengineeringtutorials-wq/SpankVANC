@@ -1,5 +1,8 @@
 # Windows setup: start with a PC and a Blackmagic card
 
+**For the guided 0.11.0 setup EXE, start with [the installer guide](WINDOWS_INSTALLER.md).**
+The instructions below retain the manual portable ZIP path.
+
 This guide assumes **Windows 11 x64**, a supported Blackmagic capture card,
 an SDI source and Internet access. You do not need Python, Git, Visual Studio,
 an NVIDIA GPU or a compiler for the first setup path. The app includes Python.
@@ -93,8 +96,10 @@ below is pinned separately to 7.0.2 and SDK 12.8.
    **Setup Guide.url** opens the full online guide. Double-click
    **Start SpankVANC.cmd** to launch the app. If Windows warns about downloaded
    software, verify the release origin/checksum before choosing to run it.
-5. When asked for FFmpeg, drag the actual **ffmpeg.exe** from Explorer into the
-   console and press Enter. **Configure FFmpeg.cmd** lets you change it later.
+5. For this manual path, run **Configure FFmpeg.cmd**, drag the actual
+   **ffmpeg.exe** from Explorer into its console and press Enter. Then run
+   **Start SpankVANC.cmd** again. An unconfigured 0.11.0 app otherwise opens
+   guided setup automatically.
 6. A browser opens at **http://127.0.0.1:8877**. If it does not, enter that exact
    address in Edge/Chrome on this PC. Keep the console window open.
 

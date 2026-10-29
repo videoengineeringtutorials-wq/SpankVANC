@@ -5,13 +5,14 @@
 <body><h1>Welcome to SpankVANC</h1>
 <p>Route broadcast video and audio, monitor captions, and control caption and SCTE policies from a browser on your PC.</p>
 <p><strong>Windows 11 x64 · Experimental · Start with a test route.</strong> Python is included. FFmpeg, Blackmagic drivers and the DeckLink SDK are separate.</p>
+<section><h2>Prefer guided setup?</h2><p>The <strong>Windows11-x64-Setup.exe</strong> release asset installs the app and opens a browser wizard for speech recognition and the local engine build. See <code>docs/WINDOWS_INSTALLER.md</code>. Blackmagic downloads, administrator approval and a restart may still be required.</p></section>
 <section><h2>1. Prepare your card and media engine</h2><ol>
 <li>Install a compatible <a href="https://www.blackmagicdesign.com/support/family/capture-and-playback">Blackmagic Desktop Video driver</a>. Restart if requested. Confirm your card appears in Desktop Video Setup and check a known SDI picture in Media Express. Close Media Express afterward.</li>
 <li>For basic SDI capture, obtain a Windows x64 FFmpeg with DeckLink support. The <a href="https://github.com/videoengineeringtutorials-wq/SpankVANC/blob/main/docs/WINDOWS_BEGINNER.md">complete guide</a> describes an optional third-party download. Extract all its files into a permanent folder and locate <code>ffmpeg.exe</code>. A normal FFmpeg without DeckLink can still handle file/network routes.</li>
 <li>Keep a working driver for your exact card. Original Duo and Duo 2 have different connector capabilities.</li></ol></section>
 <section><h2>2. Open the app</h2><ol>
 <li>Extract the entire Windows App ZIP into a writable folder, such as Documents. Open the extracted <code>SpankVANC-Windows</code> folder.</li>
-<li>Double-click <strong>Start SpankVANC.cmd</strong>. When asked, drag your <code>ffmpeg.exe</code> into the console and press Enter.</li>
+<li>For manual setup, run <strong>Configure FFmpeg.cmd</strong>, select your <code>ffmpeg.exe</code>, then double-click <strong>Start SpankVANC.cmd</strong>. An unconfigured 0.11.0 app otherwise opens the guided wizard.</li>
 <li>Keep the console open. The browser should open <a href="http://127.0.0.1:8877">http://127.0.0.1:8877</a> on this PC. Enter that address yourself if needed.</li></ol></section>
 <section><h2>Activate your license</h2><p>Enter your issued key under <strong>Application license</strong> in the browser and click Activate key. It unlocks 30 days from first activation. Internet is required at startup and during use. Expiry, revocation or a failed online check stops routes and source monitoring. Re-entering the same key does not restart the timer. See <code>docs/LICENSING.md</code> for renewal and privacy details.</p></section>
 <section><h2>3. Make a short recording</h2><ol>

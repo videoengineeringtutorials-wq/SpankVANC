@@ -11,7 +11,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install media test dependencies
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg g++ pkg-config libavformat-dev libavcodec-dev libavutil-dev cmake
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg g++ pkg-config libavformat-dev libavcodec-dev libavutil-dev cmake nsis
       - name: Unit and loopback media tests
         run: python -m unittest discover -s tests -v
       - name: Native bench tests
@@ -27,5 +27,32 @@ jobs:
         run: python tools/package_source.py
       - name: Build public Windows app archive
         run: python tools/package_windows.py
+      - name: Build public guided setup executable
+        run: python tools/package_setup.py
       - name: Verify release asset contents
         run: python tools/check_release_assets.py releases/*.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-setup
+          path: releases/*-Setup.exe
+  windows-installer:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-setup
+          path: build/installer
+      - name: Install to an isolated folder and verify every payload file
+        shell: pwsh
+        run: |
+          $installer = (Get-ChildItem build/installer/*-Setup.exe).FullName
+          $destination = Join-Path $env:RUNNER_TEMP 'SpankVANC-native-test'
+          $result = Start-Process -FilePath $installer -ArgumentList "/S /NOINTEGRATION /D=$destination" -Wait -PassThru
+          if ($result.ExitCode -ne 0) { throw 'Native installer failed' }
+          python tools/verify_setup_install.py "$destination"
