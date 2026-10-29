@@ -63,6 +63,9 @@ class SetupTests(unittest.TestCase):
             wizard.python.parent.mkdir();wizard.python.touch()
             wizard.progress['python_runtime_sha256']=wizard.deps['python']['sha256']
             with patch.object(wizard,'command') as command:wizard.speech('cpu')
+            installs=[c.args[0] for c in command.call_args_list if 'pip' in c.args[0]]
+            self.assertEqual(len(installs),2)
+            self.assertTrue(all('--no-cache-dir' in args for args in installs))
             saved=setup.load_object(wizard.settings)
             for name,value in settings.items():self.assertEqual(saved[name],value)
             self.assertEqual(saved['whisper_model_cache'],str(wizard.data/'models'))

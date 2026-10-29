@@ -240,9 +240,9 @@ if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}"""
             self.remember(python_runtime_sha256=self.deps['python']['sha256'])
         index = self.deps['cpu_index'] if device == 'cpu' else self.deps['cuda_index']
         if self.progress.get('speech_profile')!=device:
-            self.command([self.python,'-I','-m','pip','install','--disable-pip-version-check',
+            self.command([self.python,'-I','-m','pip','install','--disable-pip-version-check','--no-cache-dir',
                 'torch=='+self.deps['torch']+('+cpu' if device=='cpu' else '+cu118'),'--index-url',index])
-            self.command([self.python,'-I','-m','pip','install','--disable-pip-version-check',
+            self.command([self.python,'-I','-m','pip','install','--disable-pip-version-check','--no-cache-dir',
                 'openai-whisper=='+self.deps['whisper'],'--index-url','https://pypi.org/simple'])
         probe=[self.python,'-I','-c','import whisper,numpy,torch; print("Speech packages loaded; CUDA:",torch.cuda.is_available())']
         try:self.command(probe)

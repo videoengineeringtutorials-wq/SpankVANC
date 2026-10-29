@@ -2,7 +2,7 @@
 
 ## Current state
 
-The source/app version is **0.11.1**, adding a guided online Windows installer.
+The source/app version is **0.11.2**, adding a guided online Windows installer.
 The working Windows workstation remains on 0.10.0 with saved settings,
 route and selected 0.9.1 media engine preserved. No app or media process was
 started, and the owner license was not activated during installation.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.2 — speech dependency cache recovery
+
+- Bypass the shared pip wheel cache for managed Torch/Whisper installation, avoiding permission errors on cached wheels. Existing installed packages and verified setup downloads remain reusable.
+
 ## 0.11.1 — SDK selection and installer recovery
 
 - Select an existing SDK folder or paste its path after opening the download page.
