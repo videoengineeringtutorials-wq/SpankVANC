@@ -1,3 +1,20 @@
+## Online activation checks — October 28, 2026
+
+The full application suite passed **84 tests** after the 0.10.0 changes.
+The licensing and media browser checks passed. The 0.10.0 licensing client and UI add tests for persisted activation identity,
+server-controlled expiry, monotonic short leases, startup lock, direct media API
+lock, outages, malformed replies, HTTPS/redirect rejection and route shutdown.
+Browser checks exercise locked startup, masked key entry, activation, reload
+without exposing the key, and relocking after an expired response.
+
+The live isolated ASP.NET/SQL endpoint was checked with temporary test keys for
+exact 30-day activation, unchanged expiry on re-entry, installation binding,
+revocation, expiry and a race between two first activations. Existing hosted
+site health passed, and protected configuration, DLL and assets were preserved.
+Test rows were removed after verification; no real customer key is in these
+records. The handler compiled against .NET Framework 4.6. See
+[licensing verification](verification/licensing-0.10.0.json).
+
 ## Release publication checks — October 28, 2026
 
 - Application suite rerun: **73 tests passed**, including caption policies,

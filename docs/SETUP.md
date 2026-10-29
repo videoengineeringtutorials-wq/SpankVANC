@@ -5,6 +5,11 @@ Starting with only a Windows PC and Blackmagic card? Follow
 user-suggested [AnimMouse downloads](https://github.com/AnimMouse/ffmpeg-stable-autobuild/releases)
 and the new **Build Extended Capture.cmd** local build launcher.
 
+Version 0.10.0 requires an issued license key and ongoing Internet access.
+After launch, use **Application license → Activate key** in the local browser.
+The key lasts 30 days from first activation; expiry, revocation or failed online
+verification stops routes and source monitoring. See [licensing](LICENSING.md).
+
 ## Choose your media engine
 
 SpankVANC is the control app. FFmpeg is a separate executable. A normal FFmpeg

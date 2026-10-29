@@ -10,7 +10,8 @@ import threading
 import time
 import unittest
 
-from spankvanc.engine import DEFAULT, Engine
+from spankvanc.engine import DEFAULT
+from license_fixture import LicensedEngine as Engine
 
 
 ROOT = Path(__file__).resolve().parent.parent

@@ -23,3 +23,8 @@ docs/WORKSTATION_HANDOFF.md
 docs/control-panel.png
 
 capture-ffmpeg-local/
+
+# Licensing credentials and server database exports stay private.
+license.json
+*-license-private.*
+*.bak

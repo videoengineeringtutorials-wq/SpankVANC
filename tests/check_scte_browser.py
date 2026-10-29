@@ -9,7 +9,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-from spankvanc.engine import Engine
+from license_fixture import LicensedEngine as Engine
 from spankvanc.server import make_handler
 
 with tempfile.TemporaryDirectory() as temporary:

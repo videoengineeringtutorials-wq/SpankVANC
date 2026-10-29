@@ -98,6 +98,12 @@ below is pinned separately to 7.0.2 and SDK 12.8.
 6. A browser opens at **http://127.0.0.1:8877**. If it does not, enter that exact
    address in Edge/Chrome on this PC. Keep the console window open.
 
+7. Under **Application license**, enter the key supplied by the operator and click
+   **Activate key**. In 0.10.0+, routing unlocks only with a valid license. It
+   expires 30 days from first activation. Internet must remain available for
+   checks every minute; expiry, revocation or a failed check stops media. See
+   [license renewal and storage](LICENSING.md).
+
 Python is already included. No pip, Python install, Git or GPU configuration
 is needed. Stop another SpankVANC session if the port is already in use.
 
@@ -187,7 +193,7 @@ newer cards requiring newer drivers/SDKs need separate compatibility work.
 
 ### 3. Double-click Build Extended Capture.cmd
 
-1. Use the **0.9.1 Windows App ZIP**, which includes the build helper
+1. Use the **0.10.0 Windows App ZIP**, which includes the build helper
    and source support files. You do not need system Python, Git or Visual Studio.
 2. Double-click **Build Extended Capture.cmd** in the extracted app folder.
 3. Drag the SDK's **Win\include** folder into the console and press Enter.

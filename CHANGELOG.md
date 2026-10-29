@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.0 — online 30-day activation
+
+- Add masked license entry and online checks at startup, before media starts,
+  and every minute while running. Expiry, revocation or verification failure
+  stops routes and source monitoring; activation remains accessible.
+- Start a fixed 30-day window on first activation using SQL Server time.
+  Re-entry never extends it; keys bind to one installation identifier.
+- Add a standalone ASP.NET endpoint and isolated SQL Server table, with
+  operator-only key issuance. No keys or database credentials are bundled.
+- Preserve the 0.9.1 media engine and prior caption/SCTE behavior.
+
 ## 0.9.1 — generated-caption framing and receiver initialization
 
 - Publish the 0.7–0.9 SDI playout, SCTE and Whisper updates together with a

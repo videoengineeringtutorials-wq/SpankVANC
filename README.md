@@ -2,12 +2,17 @@
 
 A local broadcast routing and monitoring app for DeckLink SDI, captions and
 SCTE cues. Python serves a browser control panel on **127.0.0.1:8877**; media
-processing runs in a separately installed FFmpeg. No PHP or cloud backend.
+processing runs in a separately installed FFmpeg. Media and control remain local; 0.10.0 requires an online license check.
 
-**Version 0.9.1 — experimental.** Test on a spare route before using a live
+**Version 0.10.0 — experimental.** Test on a spare route before using a live
 program. CPU encoding is used; an NVIDIA GPU is not required.
 
 ## Get running
+
+**A license key and Internet access are required in 0.10.0.** Enter your issued
+key in **Application license** after launching. It unlocks 30 days from first
+activation; expiry, revocation or a failed online check stops media processing.
+See [licensing and renewal](docs/LICENSING.md).
 
 **New Windows user with just a PC and a card? Start with the
 [complete beginner setup guide](docs/WINDOWS_BEGINNER.md).** It covers downloads, card drivers, the first recording, the local engine build,

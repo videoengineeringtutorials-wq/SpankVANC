@@ -5,7 +5,7 @@ from pathlib import Path
 from http.server import ThreadingHTTPServer
 from unittest.mock import patch
 from playwright.sync_api import sync_playwright, expect
-from spankvanc.engine import Engine
+from license_fixture import LicensedEngine as Engine
 from spankvanc.server import make_handler
 from test_decklink import DeckLinkOutputTests
 

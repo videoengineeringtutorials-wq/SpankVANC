@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import secrets
+import threading
 
 from .engine import ConfigError, Engine, plan, scrub
 
@@ -14,7 +15,7 @@ WEB = Path(__file__).parent / "web"
 
 def make_handler(engine, token, port):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "SpankVANC/0.9.1"
+        server_version = "SpankVANC/0.10.0"
 
         def authorized_host(self):
             return self.headers.get("Host") in (f"127.0.0.1:{port}", f"localhost:{port}")
@@ -60,13 +61,18 @@ def make_handler(engine, token, port):
                 if not 0 < length <= 65536:
                     raise ConfigError("Request body must contain 1–65536 bytes")
                 data = json.loads(self.rfile.read(length))
-                if self.path == "/api/monitor/start":
+                if self.path == "/api/license/activate":
+                    result = engine.activate_license(data["key"])
+                elif self.path == "/api/license/check":
+                    result = engine.check_license()
+                elif self.path == "/api/monitor/start":
                     result = engine.monitor_start(data)
                 elif self.path == "/api/monitor/stop":
                     result = engine.monitor_stop()
                 elif self.path == "/api/devices":
                     result = engine.refresh_devices()
                 elif self.path == "/api/plan":
+                    engine.license.require()
                     result = plan(data, engine.capabilities)
                 elif self.path == "/api/save":
                     engine.save(data)
@@ -95,11 +101,19 @@ def serve(port, state_dir):
     server = ThreadingHTTPServer(("127.0.0.1", port), make_handler(engine, secrets.token_urlsafe(32), port))
     print(f"SpankVANC control panel: http://127.0.0.1:{port}", flush=True)
     print("Development preview. SCTE-104 program-splice conversion is available with the private build. SDI playout and live Whisper captions require the matching local engine.", flush=True)
+    closing = threading.Event()
+    def watch_license():
+        while not closing.wait(1):
+            engine.license_tick()
+    watcher = threading.Thread(target=watch_license, daemon=True)
+    watcher.start()
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        closing.set()
+        watcher.join(timeout=10)
         engine.stop()
         engine.monitor_stop()
         server.server_close()

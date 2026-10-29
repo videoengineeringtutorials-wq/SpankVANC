@@ -7,7 +7,8 @@ import threading
 import unittest
 from http.server import ThreadingHTTPServer
 
-from spankvanc.engine import ConfigError, DEFAULT, Engine, command, plan, scrub, scte_options, validate
+from spankvanc.engine import ConfigError, DEFAULT, command, plan, scrub, scte_options, validate
+from license_fixture import LicensedEngine as Engine
 from spankvanc.events import Cue, Deduplicator, pts_distance, serial_pulse
 from spankvanc.server import make_handler
 
@@ -164,6 +165,8 @@ class ServerTests(unittest.TestCase):
         self.assertNotIn(b"__CONTROL_TOKEN__", body)
         self.assertEqual(self.request("GET", "/api/state")[0], 403)
         self.assertEqual(self.request("GET", "/api/monitor")[0], 403)
+        self.assertEqual(self.request("POST", "/api/license/activate", {"key":"dummy"})[0], 403)
+        self.assertEqual(self.request("POST", "/api/license/check", {})[0], 403)
         headers = {"X-SpankVANC-Token":"test-token"}
         status, body = self.request("GET", "/api/monitor", headers=headers)
         self.assertEqual(status, 200)

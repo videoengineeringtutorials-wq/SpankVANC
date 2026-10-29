@@ -1,9 +1,13 @@
-SpankVANC 0.9.1 — Windows 11 x64 app
+SpankVANC 0.10.0 — Windows 11 x64 app
 
 START HERE: double-click START HERE.html for the included quick-start page.
 Setup Guide.url opens the complete online guide.
 The offline text copy, docs\WINDOWS_BEGINNER.md, covers the full PC-and-card setup.
 It includes the AnimMouse FFmpeg download link and explains basic vs extended features.
+
+A license key and Internet access are required. Enter the key in Application
+license after opening the browser. It lasts 30 days from first activation;
+failed verification or expiry stops media processing. See docs\LICENSING.md.
 
 1. Extract this entire ZIP into a NEW writable folder.
 2. Run Start SpankVANC.cmd and select your separately supplied ffmpeg.exe.

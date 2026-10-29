@@ -2,6 +2,27 @@
 
 ## Current state
 
+The source/app version is now **0.10.0**, adding online 30-day licensing. The
+Windows workstation remains on its working **0.9.1** deployment; this licensing
+change has not been installed there or interrupted its media processes.
+
+- Enter a key in the Application license panel. SQL Server starts a 30-day
+  period at first activation; repeated activation does not extend it.
+- The isolated HTTPS handler/table are deployed on the existing TV-Watermark
+  host. Existing DLL, config, assets and health were preserved.
+- Startup/media starts require online validation. The server watchdog rechecks
+  every minute and stops routes/monitoring after expiry, revocation or failure.
+- Full application suite: 84 tests; licensing and media browser checks passed.
+  Hosted verification includes the actual client stopping a local test process
+  after server-side revocation.
+- Public source remains MIT. Modified builds and earlier versions can bypass
+  the gate; this is not tamper-proof DRM. See `LICENSING.md` and
+  `../licensing/README.md` for implementation and operator steps.
+- Issued keys, operator SQL, database credentials and deployment scripts remain
+  private, outside the checkout. Never include license.json in packages.
+
+## Prior deployed media state
+
 SpankVANC is at **0.9.1** and installed on the Windows workstation for the next
 launch. The saved route, general FFmpeg path and earlier engines were preserved.
 The new Whisper integration supersedes the earlier

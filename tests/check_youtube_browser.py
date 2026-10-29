@@ -10,6 +10,7 @@ from playwright.sync_api import sync_playwright,expect
 ROOT=Path(__file__).resolve().parent.parent
 sys.path[:0]=[str(ROOT),str(ROOT/'tests')]
 from spankvanc.engine import Engine,YOUTUBE_SERVER
+from license_fixture import LicensedEngine as Engine
 from spankvanc.server import make_handler
 from test_core import CAP,route
 

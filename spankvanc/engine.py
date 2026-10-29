@@ -614,7 +614,10 @@ def terminate_process(process):
 
 
 class Engine:
-    def __init__(self, state_dir: Path):
+    def __init__(self, state_dir: Path, license_client=None):
+        from .licensing import LicenseClient
+        self.license = license_client if license_client is not None else LicenseClient()
+        self.license.check(force=True)
         self.state_dir = state_dir
         self.config_path = state_dir / "route.json"
         self.lock = threading.RLock()
@@ -641,6 +644,7 @@ class Engine:
 
     def monitor_start(self, raw):
         with self.lock:
+            self.license.require()
             if self.process and self.process.poll() is None:
                 raise ConfigError("The running route already supplies the source monitor")
             if not self.capabilities.get("source_monitor"):
@@ -680,6 +684,7 @@ class Engine:
 
     def refresh_devices(self):
         with self.lock:
+            self.license.require()
             if self.process and self.process.poll() is None:
                 raise ConfigError("Stop the route before refreshing devices")
             if self.monitor_process and self.monitor_process.poll() is None:
@@ -688,6 +693,7 @@ class Engine:
         return self.state()
 
     def save(self, raw):
+        self.license.require()
         cfg = validate(raw)
         with self.lock:
             if self.process and self.process.poll() is None:
@@ -701,12 +707,40 @@ class Engine:
             self.config = cfg
         return cfg
 
+    def activate_license(self, key):
+        self.license.activate(key)
+        return self.state()
+
+    def check_license(self):
+        result = self.license.check(force=True)
+        if not result['valid']:
+            self.stop()
+            self.monitor_stop()
+        return self.state()
+
+    def license_tick(self):
+        if self.license.due():
+            result = self.license.check(force=True)
+            if not result['valid']:
+                with self.lock:
+                    active = ((self.process and self.process.poll() is None) or
+                              (self.monitor_process and self.monitor_process.poll() is None))
+                if active:
+                    self.logs.append('License verification failed; stopping media processing.')
+                    self.stop()
+                    self.monitor_stop()
+
     def state(self):
         with self.lock:
+            licensed = self.license.status()
+            readiness = plan(self.config, self.capabilities)
+            if not licensed['valid']:
+                readiness['ready'] = False
+                readiness['blockers'].insert(0, licensed['message'])
             running = bool(self.process and self.process.poll() is None)
-            return {"config": copy.deepcopy(self.config), "capabilities": self.capabilities,
+            return {"license": licensed, "config": copy.deepcopy(self.config), "capabilities": self.capabilities,
                     "running": running, "last_exit": self.last_exit, "stopped_by_user": self.stop_requested, "logs": list(self.logs),
-                    "plan": plan(self.config, self.capabilities), "scte_options": scte_matrix(),
+                    "plan": readiness, "scte_options": scte_matrix(),
                     "monitor_running": bool(self.monitor_process and self.monitor_process.poll() is None),
                     "source_monitor": self.source_monitor.state(running or bool(self.monitor_process and self.monitor_process.poll() is None)),
                     "video_codec_options": {kind: video_codec_options(kind)
@@ -714,6 +748,7 @@ class Engine:
 
     def start(self, raw):
         with self.lock:
+            self.license.require()
             cfg = validate(raw)
             result = plan(cfg, self.capabilities)
             if not result["ready"]:
@@ -732,6 +767,8 @@ class Engine:
                 except (OSError,RuntimeError) as exc:raise ConfigError(str(exc)) from exc
             self.whisper_process=worker
             try:
+                # Model loading can take minutes. Revalidate before opening media.
+                self.license.require()
                 process = subprocess.Popen(command(cfg, self.capabilities,journal), stdout=worker.stdin if worker else subprocess.DEVNULL, stderr=subprocess.PIPE,
                                        text=True, errors="replace", stdin=subprocess.DEVNULL, **process_group_options())
             except Exception:

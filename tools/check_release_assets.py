@@ -11,8 +11,9 @@ def check(path):
    parts=Path(name).parts;lower=name.lower()
    assert not name.startswith('/') and '..' not in parts,'Unsafe archive path'
    assert not any(p.lower() in ('runtime','diagnostics','.git','.ssh','capture-ffmpeg','capture-ffmpeg-local','decklinksdk','sdk') for p in parts),'Forbidden state or dependency directory: '+name
-   assert Path(name).name not in ('settings.json','route.json','WORKSTATION_HANDOFF.md','.env','id_rsa','id_ed25519'),'Workstation state: '+name
+   assert Path(name).name not in ('settings.json','route.json','WORKSTATION_HANDOFF.md','license.json','.env','id_rsa','id_ed25519'),'Workstation state: '+name
    assert not Path(name).name.startswith('DeckLinkAPI'),'SDK file: '+name
+   assert '-license-private.' not in Path(name).name.lower(),'Private license artifact: '+name
    suffix=Path(name).suffix.lower()
    if suffix in ('.exe','.dll','.pyd'):
     assert app and len(parts)>2 and parts[1]=='python','Media/dependency binary: '+name
@@ -28,6 +29,9 @@ def check(path):
    if tuple(map(int,manifest['app_version'].split('.'))) >= (0,9,1):
     for required in ('START HERE.html','docs/WHISPER.md','docs/SDI_SCTE.md','app/spankvanc/whisper_worker.py','build-support/tools/patch_ffmpeg_whisper.py','build-support/native/vf_spankvanc_cc.c'):
      assert prefix+required in names,'Missing installation/runtime support: '+required
+   if tuple(map(int,manifest['app_version'].split('.'))) >= (0,10,0):
+    for required in ('app/spankvanc/licensing.py','docs/LICENSING.md'):
+     assert prefix+required in names,'Missing licensing support: '+required
    for name,digest in manifest['files'].items():
     assert hashlib.sha256(archive.read(prefix+name)).hexdigest()==digest,'Manifest mismatch: '+name
   else:

@@ -1,0 +1,22 @@
+{
+  "activation_30_days_reentry_no_extension_binding": true,
+  "expired_cannot_reactivate": true,
+  "revocation": true,
+  "concurrent_first_activation_one_winner": true,
+  "invalid_inputs_rejected": true,
+  "existing_site_health": true,
+  "real_client_online_activation_and_revocation_stop": true,
+  "application": "SpankVANC",
+  "version": "0.10.0",
+  "date": "2026-10-28",
+  "python_tests_passed": 84,
+  "license_browser_passed": true,
+  "media_browser_passed": true,
+  "handler_framework_compile": "4.6",
+  "existing_host_files_preserved": true,
+  "temporary_test_rows_removed": true,
+  "customer_keys_included": false,
+  "database_credentials_included": false,
+  "workstation_app_changed": false,
+  "expiry_during_model_warmup_blocks_media": true
+}

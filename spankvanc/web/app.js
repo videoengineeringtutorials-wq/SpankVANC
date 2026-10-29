@@ -95,8 +95,12 @@ function renderPlan(plan){
   $('notes').replaceChildren(...plan.notes.map(text=>make('li',text)));
 }
 function renderState(state){
+  const licensed=state.license?.valid===true;
+  $('license-status').textContent=(state.license?.message||'Activation required.')+(state.license?.expires_at?' Expires '+new Date(state.license.expires_at*1000).toLocaleString()+'.':'');
+  document.querySelector('main').hidden=!licensed;
+  document.querySelector('.toolbar').hidden=!licensed;
   currentState=state;$('route-status').textContent=state.running?'Route running':state.last_exit!==null&&state.last_exit!==0&&!state.stopped_by_user?'Route stopped · check log':'Engine idle';$('state-dot').className='dot'+(state.running?' lime':'');
-  $('start').disabled=state.running;$('stop').disabled=!state.running;$('save').disabled=state.running;$('refresh-devices').disabled=state.running;
+  $('start').disabled=state.running||!licensed;$('stop').disabled=!state.running;$('save').disabled=state.running||!licensed;$('refresh-devices').disabled=state.running||!licensed;
   document.querySelectorAll('main input,main select:not(#caption-service),#add-output,.remove').forEach(el=>el.disabled=state.running);
   $('exit-code').textContent=state.running?'RUNNING':state.last_exit===null?'IDLE':state.stopped_by_user?'STOPPED':'EXIT '+state.last_exit;
   const log=$('logs');const bottom=log.scrollTop+log.clientHeight>=log.scrollHeight-30;log.textContent=state.logs.join('\n')||'No route started. Configure your source and check readiness.';if(bottom)log.scrollTop=log.scrollHeight;
@@ -117,7 +121,7 @@ function renderMonitor(data){
   $('scte-rejections').textContent=(m.rejections||[]).map(r=>`[${r.received_at}] ${r.reason}\nSource ${(r.source_pts90k/90000).toFixed(3)}s · rejected total ${r.total}\nANC: ${r.payload_hex}`).join('\n\n')||'No rejected messages.';
   $('cue-counts').classList.toggle('caption-error',m.conversion_error);
   $('caption-history').textContent=m.history.filter(h=>h.service===service).slice(-20).map(h=>`[${(h.pts90k/90000).toFixed(2)}s] ${h.text}`).join('\n\n')||'No decoded text yet.';
-  $('monitor-start').disabled=data.running||data.monitor_running||!currentState?.capabilities.source_monitor;
+  $('monitor-start').disabled=!currentState?.license?.valid||data.running||data.monitor_running||!currentState?.capabilities.source_monitor;
   $('monitor-stop').disabled=!data.monitor_running;
 }
 $('caption-service').onchange=()=>renderMonitor(latestMonitor);
@@ -133,5 +137,7 @@ $('decklink-device').addEventListener('change',()=>{$('input-address').value=$('
 $('decklink-mode').addEventListener('change',()=>{config.input.format_code=$('decklink-mode').value;markDirty();});
 $('refresh-devices').onclick=async()=>{try{const state=await api('devices',{});currentState=state;renderSource();renderOutputs();renderState(state);notice('Device list refreshed.');}catch(error){notice(error.message,true);}};
 async function boot(){try{const state=await api('state');scteOptions=state.scte_options;videoCodecOptions=state.video_codec_options;currentState=state;fill(state.config);renderState(state);renderPlan(state.plan);}catch(error){notice(error.message,true);$('route-status').textContent='Engine unavailable';}}
+$('license-form').onsubmit=async event=>{event.preventDefault();const button=$('license-activate');button.disabled=true;try{const key=$('license-key').value;$('license-key').value='';const state=await api('license/activate',{key});renderState(state);renderPlan(state.plan);notice('License activated.');}catch(error){notice(error.message,true);}finally{button.disabled=false;}};
+$('license-check').onclick=async()=>{try{const state=await api('license/check',{});renderState(state);renderPlan(state.plan);notice(state.license.message,!state.license.valid);}catch(error){notice(error.message,true);}};
 boot();
 setInterval(async()=>{try{const state=await api('state');if(!config)return;renderState(state);}catch(error){$('route-status').textContent='Engine unavailable';}},2000);
