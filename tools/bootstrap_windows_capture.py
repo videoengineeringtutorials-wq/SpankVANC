@@ -26,7 +26,12 @@ def fetch(name,build,run):
  url,digest,directory=SOURCES[name];archive=build/name
  if not archive.exists():
   partial=archive.with_suffix(archive.suffix+'.part')
-  run(['curl','--fail','--location','--retry','2',url,'--output',str(partial)])
+  options=['--fail','--location','--connect-timeout','15','--max-time','600',
+   '--retry','2','--retry-all-errors']
+  try:run(['curl',*options,url,'--output',str(partial)])
+  except (RuntimeError,subprocess.CalledProcessError):
+   print('Source download failed; retrying the same verified source over IPv4.',flush=True)
+   run(['curl','--ipv4',*options,url,'--output',str(partial)])
   if hashlib.sha256(partial.read_bytes()).hexdigest()!=digest:raise ValueError('Source SHA-256 mismatch: '+name)
   partial.replace(archive)
  if hashlib.sha256(archive.read_bytes()).hexdigest()!=digest:raise ValueError('Cached source SHA-256 mismatch: '+name)

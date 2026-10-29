@@ -1,6 +1,6 @@
-# Guided Windows setup (0.11.2)
+# Guided Windows setup (0.11.3)
 
-For public testers, download **SpankVANC-0.11.2-Windows11-x64-Setup.exe** from
+For public testers, download **SpankVANC-0.11.3-Windows11-x64-Setup.exe** from
 [Releases](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases).
 This is one entry point for installation, downloads and the local engine build.
 It is an **online installer**, not an offline bundle of every dependency.
@@ -29,7 +29,7 @@ It is an **online installer**, not an offline bundle of every dependency.
    check the consent box and click **Set up this PC**.
 6. Approve Windows' administrator prompt for its Linux build support. If setup
    requests a restart, save your work and restart Windows yourself. Open the
-   desktop **Finish SpankVANC Setup 0.11.2** shortcut afterward and click
+   desktop **Finish SpankVANC Setup 0.11.3** shortcut afterward and click
    **Set up this PC** again. SDK selection and completed work are remembered.
 7. If Microsoft C++ runtime setup opens, complete its vendor installer and
    return to the wizard. No commands or Linux account creation are required.

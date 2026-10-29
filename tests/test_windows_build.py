@@ -26,6 +26,20 @@ class LocalBuildTests(unittest.TestCase):
    with self.assertRaisesRegex(ValueError,'SHA-256 mismatch'):bootstrap.fetch('ffmpeg-7.0.2.tar.xz',root,run)
    run.assert_not_called();self.assertFalse((root/'ffmpeg-7.0.2').exists())
 
+ def test_connection_failure_retries_ipv4_and_still_checks_hash(self):
+  with tempfile.TemporaryDirectory() as folder:
+   root=Path(folder);calls=[]
+   def run(args):
+    calls.append(args)
+    if len(calls)==1:raise RuntimeError('connection failed')
+    Path(args[-1]).write_bytes(b'wrong source')
+   with self.assertRaisesRegex(ValueError,'SHA-256 mismatch'):
+    bootstrap.fetch('ffmpeg-7.0.2.tar.xz',root,run)
+   self.assertEqual(len(calls),2)
+   self.assertNotIn('--ipv4',calls[0]);self.assertIn('--ipv4',calls[1])
+   self.assertIn('--retry-all-errors',calls[1])
+   self.assertFalse((root/'ffmpeg-7.0.2.tar.xz').exists())
+
  def test_capture_settings_preserve_general_engine_and_other_fields(self):
   with tempfile.TemporaryDirectory(prefix='build helper ') as folder:
    root=Path(folder);path=root/'settings.json';path.write_text(json.dumps({'ffmpeg_path':'C:\\old\\ffmpeg.exe','other':42}))

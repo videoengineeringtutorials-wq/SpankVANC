@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.11.3 — resilient build source downloads
+
+- Retry source-download connection failures, bound connection waits, and automatically retry over IPv4 when normal connections fail. Both paths require the same pinned SHA-256 before extraction.
+
 ## 0.11.2 — speech dependency cache recovery
 
 - Bypass the shared pip wheel cache for managed Torch/Whisper installation, avoiding permission errors on cached wheels. Existing installed packages and verified setup downloads remain reusable.
