@@ -56,8 +56,8 @@ public sealed class SpankVancLicenseHandler : IHttpHandler {
                     using (var clock = new SqlCommand("SELECT DATEDIFF(second,CONVERT(datetime,'19700101',112),GETUTCDATE())", db, tx)) {
                         clock.CommandTimeout = 5; now = Convert.ToInt64(clock.ExecuteScalar());
                     }
-                    string bound = null; long? activated = null, expires = null; bool exists = false, revoked = false;
-                    using (var cmd = new SqlCommand("SELECT installation_hash,activated_at,expires_at,revoked FROM dbo.spankvanc_licenses WITH (UPDLOCK,HOLDLOCK) WHERE key_hash=@key", db, tx)) {
+                    string bound = null; long? activated = null, expires = null; bool exists = false, revoked = false, shared = false;
+                    using (var cmd = new SqlCommand("SELECT installation_hash,activated_at,expires_at,revoked,shared FROM dbo.spankvanc_licenses WITH (UPDLOCK,HOLDLOCK) WHERE key_hash=@key", db, tx)) {
                         cmd.CommandTimeout = 5;
                         cmd.Parameters.Add("@key", SqlDbType.Char, 64).Value = Hash(key);
                         using (var row = cmd.ExecuteReader()) {
@@ -65,7 +65,19 @@ public sealed class SpankVancLicenseHandler : IHttpHandler {
                                 exists = true; bound = row.IsDBNull(0) ? null : row.GetString(0);
                                 activated = row.IsDBNull(1) ? (long?)null : row.GetInt64(1);
                                 expires = row.IsDBNull(2) ? (long?)null : row.GetInt64(2);
-                                revoked = row.GetBoolean(3);
+                                revoked = row.GetBoolean(3); shared = row.GetBoolean(4);
+                            }
+                        }
+                    }
+                    if (exists && !revoked && shared) {
+                        // Public keys have an independent fixed window per installation.
+                        bound = null; activated = null; expires = null;
+                        using (var cmd = new SqlCommand("SELECT activated_at,expires_at FROM dbo.spankvanc_license_activations WITH (UPDLOCK,HOLDLOCK) WHERE key_hash=@key AND installation_hash=@installation", db, tx)) {
+                            cmd.CommandTimeout = 5;
+                            cmd.Parameters.Add("@key", SqlDbType.Char, 64).Value = Hash(key);
+                            cmd.Parameters.Add("@installation", SqlDbType.Char, 64).Value = Hash(installation);
+                            using (var row = cmd.ExecuteReader()) {
+                                if (row.Read()) { bound = Hash(installation); activated = row.GetInt64(0); expires = row.GetInt64(1); }
                             }
                         }
                     }
@@ -74,7 +86,10 @@ public sealed class SpankVancLicenseHandler : IHttpHandler {
                     if (reason != null) { tx.Rollback(); Reply(c, 403, Denied(reason)); return; }
                     // First activation is atomic. Repeated requests never extend the window.
                     if (!activated.HasValue) { activated = now; expires = now + 2592000L; bound = Hash(installation); }
-                    using (var cmd = new SqlCommand("UPDATE dbo.spankvanc_licenses SET installation_hash=@installation,activated_at=@activated,expires_at=@expires,last_seen=@now WHERE key_hash=@key", db, tx)) {
+                    string update = shared ?
+                        "IF EXISTS (SELECT 1 FROM dbo.spankvanc_license_activations WHERE key_hash=@key AND installation_hash=@installation) UPDATE dbo.spankvanc_license_activations SET last_seen=@now WHERE key_hash=@key AND installation_hash=@installation ELSE INSERT INTO dbo.spankvanc_license_activations(key_hash,installation_hash,activated_at,expires_at,last_seen) VALUES (@key,@installation,@activated,@expires,@now); UPDATE dbo.spankvanc_licenses SET last_seen=@now WHERE key_hash=@key" :
+                        "UPDATE dbo.spankvanc_licenses SET installation_hash=@installation,activated_at=@activated,expires_at=@expires,last_seen=@now WHERE key_hash=@key";
+                    using (var cmd = new SqlCommand(update, db, tx)) {
                         cmd.CommandTimeout = 5;
                         cmd.Parameters.Add("@key", SqlDbType.Char, 64).Value = Hash(key);
                         cmd.Parameters.Add("@installation", SqlDbType.Char, 64).Value = bound;

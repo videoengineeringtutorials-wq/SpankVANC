@@ -8,13 +8,18 @@ app; it does not change the FFmpeg executable or Blackmagic drivers.
 ## Activate or renew
 
 1. Obtain an issued **SV1-…** key from the operator. A key is not included in
-   the download. Do not post it to GitHub or attach it to a support issue.
+   the download. The operator may also provide a temporary shared tester key. Do not post it to GitHub or attach it to a support issue.
 2. Launch SpankVANC and open **http://127.0.0.1:8877** on that PC.
 3. Under **Application license**, paste the key and click **Activate key**.
 4. The server starts exactly **30 × 24 hours** on the first successful
    activation, binds it to this installation identifier, and returns the expiry.
    Re-entering the same key, restarting or reinstalling the app does not extend
    the server's existing expiry. The browser displays the expiry in local time.
+   Private keys bind to one installation. A shared tester key can be used by
+   multiple installations, each with its own first-activation date and 30-day
+   expiry. Another tester activating does not shorten your window; re-entry on
+   the same installation does not extend it. The operator can revoke the shared
+   key for everyone, including already-active testers.
 5. Before expiry, obtain a new key. Entering a newly issued key starts its own
    30-day window immediately; unused time on an old key is not carried over.
 
@@ -37,8 +42,10 @@ extend the validated window.
   `${XDG_DATA_HOME:-~/.local/share}/SpankVANC/license.json`.
 - Keep that file private. It is separate from saved media routes and survives
   extraction of a new app ZIP. Do not delete it when upgrading. If it is lost,
-  contact the operator to recover the existing installation binding without
-  resetting activation/expiry. Do not copy it to other users or machines.
+  contact the operator about recovering the existing installation binding without
+  resetting activation/expiry. Shared trials identify installations using this
+  saved random identifier; deleting it creates a different identity, so this is
+  a temporary public trial mechanism, not hardware-enforced seat control. Do not copy it to other users or machines.
 - HTTPS requests send only the key, random installation identifier and the
   action (`activate` or `check`). No stream key, saved route, audio, machine
   name, or broadcast recording is sent. The hosting provider can see normal

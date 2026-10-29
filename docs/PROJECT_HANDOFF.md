@@ -2,9 +2,16 @@
 
 ## Current state
 
-The source/app version is now **0.10.0**, adding online 30-day licensing. The
-Windows workstation remains on its working **0.9.1** deployment; this licensing
-change has not been installed there or interrupted its media processes.
+The source/app version is **0.10.0**, adding online 30-day licensing. The
+Windows workstation was subsequently updated to 0.10.0 with saved settings,
+route and selected 0.9.1 media engine preserved. No app or media process was
+started, and the owner license was not activated during installation.
+
+The backend now also supports explicit **shared tester keys**, each granting an
+independent 30-day window per installation. Private keys retain their original
+binding. Existing 0.10.0 clients need no update. Parent-key revocation stops all
+shared-key activations/checks. See `verification/shared-licensing.json`.
+Shared installation IDs are saved random state, not hardware fingerprints.
 
 - Enter a key in the Application license panel. SQL Server starts a 30-day
   period at first activation; repeated activation does not extend it.
@@ -12,7 +19,7 @@ change has not been installed there or interrupted its media processes.
   host. Existing DLL, config, assets and health were preserved.
 - Startup/media starts require online validation. The server watchdog rechecks
   every minute and stops routes/monitoring after expiry, revocation or failure.
-- Full application suite: 84 tests; licensing and media browser checks passed.
+- Full application suite before shared server update: 84 tests; licensing and media browser checks passed.
   Hosted verification includes the actual client stopping a local test process
   after server-side revocation.
 - Public source remains MIT. Modified builds and earlier versions can bypass

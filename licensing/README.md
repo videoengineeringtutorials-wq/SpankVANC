@@ -3,7 +3,7 @@
 The temporary backend targets the existing ASP.NET Framework 4.6 / SQL Server
 host. It is a standalone handler; do not replace TV-Watermark's DLL, Web.config,
 Square settings, routes or account tables. All new rows live in
-`dbo.spankvanc_licenses`.
+`dbo.spankvanc_licenses` and `dbo.spankvanc_license_activations`.
 
 ## Deployment
 
@@ -59,3 +59,22 @@ For a lost installation file, the operator can inspect the private SQL row and
 recover the known installation file from backup. A binding transfer requires an
 explicit support decision; preserve activation and expiry and revoke the old
 installation before transferring. No automatic reset endpoint is provided.
+
+## Shared public tester keys (compatible with the 0.10.0 app)
+
+Use `--shared` when running `tools/license_operator.py` to issue a key intended
+for public testers. Import its SQL after applying the current additive schema.
+Do not convert an existing private/owner key to public use.
+
+The parent key's `shared` flag is false by default, preserving private key
+behavior. For shared keys, activation dates live in a separate table keyed by
+key hash and installation hash. Each installation receives 30 days from its
+own first activation; re-entry and concurrent retries preserve that expiry.
+One tester's expiry does not affect others. Setting the parent's `revoked=1`
+blocks both new activations and checks by every existing installation.
+
+There is no global enrollment deadline by default: the key accepts new testers
+until revoked. This is a temporary, openly shared trial. Installation identity
+is random per-user saved state, not a hardware fingerprint; deleting that state
+can create a new identity. Do not present this as tamper-proof trial enforcement.
+The existing 0.10.0 app works without an update; no key is embedded in it.

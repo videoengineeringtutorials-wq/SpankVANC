@@ -1,0 +1,16 @@
+{
+  "multiple_installations_and_concurrent_first_activations": true,
+  "each_window_exactly_30_days_without_extension": true,
+  "same_installation_concurrent_retries_are_idempotent": true,
+  "one_expired_installation_does_not_expire_others": true,
+  "existing_0_10_clients_work_and_global_revocation_locks_all": true,
+  "existing_site_health": true,
+  "date": "2026-10-28",
+  "client_version": "0.10.0",
+  "backend_feature": "shared tester keys",
+  "existing_private_key_behavior_verified": true,
+  "handler_framework_compile": "4.6",
+  "temporary_test_rows_removed": true,
+  "customer_keys_included": false,
+  "python_tests_passed": 85
+}

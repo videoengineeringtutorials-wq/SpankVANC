@@ -1,3 +1,15 @@
+## Shared licensing backend update — October 28, 2026
+
+The full application/operator suite passed **85 tests**.
+The shared-key endpoint passed live SQL/HTTPS tests for multiple installations,
+concurrent activation of different installations, idempotent concurrent retries
+on one installation, exact independent 30-day windows, unchanged expiry on
+re-entry, one installation expiring without affecting others, and parent-key
+revocation blocking every tester. The existing 0.10.0 client worked unchanged.
+The complete private-key regression checks also passed, including binding and
+actual client shutdown after revocation. Existing hosted health passed. Temporary
+test rows were removed. See [shared licensing verification](verification/shared-licensing.json).
+
 ## Online activation checks — October 28, 2026
 
 The full application suite passed **84 tests** after the 0.10.0 changes.

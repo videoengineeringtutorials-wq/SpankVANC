@@ -18,4 +18,21 @@ BEGIN
                 AND expires_at IS NOT NULL AND expires_at=activated_at+2592000))
     );
 END;
+IF COL_LENGTH('dbo.spankvanc_licenses', 'shared') IS NULL
+    ALTER TABLE dbo.spankvanc_licenses ADD shared bit NOT NULL
+        CONSTRAINT spankvanc_shared_default DEFAULT 0 WITH VALUES;
+IF OBJECT_ID('dbo.spankvanc_license_activations', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.spankvanc_license_activations (
+        key_hash char(64) NOT NULL,
+        installation_hash char(64) NOT NULL,
+        activated_at bigint NOT NULL,
+        expires_at bigint NOT NULL,
+        last_seen bigint NOT NULL,
+        CONSTRAINT spankvanc_activation_pk PRIMARY KEY (key_hash, installation_hash),
+        CONSTRAINT spankvanc_activation_key FOREIGN KEY (key_hash)
+            REFERENCES dbo.spankvanc_licenses(key_hash),
+        CONSTRAINT spankvanc_activation_window CHECK (expires_at=activated_at+2592000)
+    );
+END;
 COMMIT;

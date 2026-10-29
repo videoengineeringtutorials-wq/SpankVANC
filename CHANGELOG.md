@@ -1,5 +1,12 @@
 # Changelog
 
+## Server update — shared tester keys (0.10.0-compatible)
+
+- Add an explicit shared-key type with separate 30-day activation windows per
+  installation. Existing private keys retain their one-installation binding.
+- Preserve each activation’s expiry on retries and allow revocation of a shared
+  key for all testers. Existing 0.10.0 clients need no update.
+
 ## 0.10.0 — online 30-day activation
 
 - Add masked license entry and online checks at startup, before media starts,
