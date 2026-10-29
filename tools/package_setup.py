@@ -45,13 +45,13 @@ Unicode true
 !include "x64.nsh"
 !include "FileFunc.nsh"
 Var NoIntegration
-Name "SpankVANC VERSION setup"
+Name "SpankVANC VERSION setup and repair"
 OutFile "OUTPUT"
 InstallDir "$LOCALAPPDATA\Programs\SpankVANC\VERSION"
 RequestExecutionLevel user
 SetCompressor /SOLID zlib
 BrandingText "SpankVANC guided setup"
-!define MUI_WELCOMEPAGE_TEXT "Install the app and open its guided setup. It downloads speech recognition and builds the DeckLink engine on this PC. Allow Internet access, at least 12 GB of free space and potentially an hour or more. Blackmagic downloads and a Windows restart may be required. No FFmpeg binary, SDK or driver is bundled."
+!define MUI_WELCOMEPAGE_TEXT "Install or repair the app and open its guided setup. It downloads speech recognition and builds the DeckLink engine on this PC. Allow Internet access, at least 12 GB of free space and potentially an hour or more. Blackmagic downloads and a Windows restart may be required. No FFmpeg binary, SDK or driver is bundled."
 !define MUI_FINISHPAGE_RUN "$INSTDIR\python\pythonw.exe"
 !define MUI_FINISHPAGE_RUN_PARAMETERS '-X utf8 $\"$INSTDIR\setup\setup.py$\"'
 !define MUI_FINISHPAGE_RUN_TEXT "Open guided setup"
@@ -76,22 +76,29 @@ Function .onInit
   ${EndIf}
 FunctionEnd
 Function .onVerifyInstDir
-  ${DirState} "$INSTDIR" $0
-  ${If} $0 == 1
-    MessageBox MB_OK|MB_ICONSTOP "Choose a new empty folder. To resume an existing installation, open its Finish SpankVANC Setup shortcut." /SD IDOK
-    Abort
-  ${EndIf}
 FunctionEnd
 Section "SpankVANC"
   SetShellVarContext current
-  ${DirState} "$INSTDIR" $0
-  ${If} $0 == 1
-    MessageBox MB_OK|MB_ICONSTOP "Choose a new empty folder. Existing files were not replaced." /SD IDOK
+  InitPluginsDir
+  SetOutPath "$PLUGINSDIR\repair-python"
+  File /r "PAYLOAD/python/*"
+  File /oname=maintenance.py "PAYLOAD/setup/maintenance.py"
+  File /oname=incoming.json "PAYLOAD/PACKAGE.json"
+  DetailPrint "Checking for an existing or incomplete SpankVANC installation..."
+  nsExec::ExecToStack '"$PLUGINSDIR\repair-python\python.exe" -I "$PLUGINSDIR\repair-python\maintenance.py" install "$INSTDIR" "$PLUGINSDIR\repair-python\incoming.json"'
+  Pop $0
+  Pop $1
+  ${If} $0 != 0
+    MessageBox MB_OK|MB_ICONSTOP "$1" /SD IDOK
     SetErrorLevel 2
     Abort
   ${EndIf}
   SetOutPath "$INSTDIR"
-  File /r "PAYLOAD/*"
+  File /r /x python "PAYLOAD/*"
+  CreateDirectory "$INSTDIR\python"
+  CopyFiles /SILENT "$PLUGINSDIR\repair-python\*" "$INSTDIR\python"
+  Delete "$INSTDIR\python\maintenance.py"
+  Delete "$INSTDIR\python\incoming.json"
   WriteINIStr "$INSTDIR\installer-state.ini" "Installer" "NoIntegration" "$NoIntegration"
   ${If} $NoIntegration != "yes"
   CreateDirectory "$SMPROGRAMS\SpankVANC VERSION"
@@ -109,6 +116,26 @@ Section "SpankVANC"
 SectionEnd
 Section "Uninstall"
   SetShellVarContext current
+  InitPluginsDir
+  CreateDirectory "$PLUGINSDIR\repair-python"
+  CopyFiles /SILENT "$INSTDIR\python\*" "$PLUGINSDIR\repair-python"
+  CopyFiles /SILENT "$INSTDIR\setup\maintenance.py" "$PLUGINSDIR\repair-python"
+  IfFileExists "$PLUGINSDIR\repair-python\python.exe" 0 uninstall_incomplete
+  IfFileExists "$PLUGINSDIR\repair-python\maintenance.py" 0 uninstall_incomplete
+  nsExec::ExecToStack '"$PLUGINSDIR\repair-python\python.exe" -I "$PLUGINSDIR\repair-python\maintenance.py" uninstall "$INSTDIR"'
+  Pop $0
+  Pop $1
+  ${If} $0 != 0
+    MessageBox MB_OK|MB_ICONSTOP "$1" /SD IDOK
+    SetErrorLevel 2
+    Abort
+  ${EndIf}
+  Goto uninstall_ready
+uninstall_incomplete:
+  MessageBox MB_OK|MB_ICONSTOP "Some app files are missing. Run the latest Setup EXE to repair this installation, then uninstall again." /SD IDOK
+  SetErrorLevel 2
+  Abort
+uninstall_ready:
   ReadINIStr $0 "$INSTDIR\installer-state.ini" "Installer" "NoIntegration"
 UNINSTALL
   Delete "$INSTDIR\installer-state.ini"
@@ -122,7 +149,7 @@ UNINSTALL
   RMDir "$SMPROGRAMS\SpankVANC VERSION"
   DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\SpankVANC-VERSION"
   ${EndIf}
-  MessageBox MB_OK "App files were removed. Local settings, recordings, license state, speech downloads and the Linux build environment are preserved."
+  MessageBox MB_OK "App files were removed. Local settings, recordings, license state, speech downloads and the Linux build environment are preserved." /SD IDOK
 SectionEnd
 '''.replace('VERSION',VERSION).replace('OUTPUT',quote(a.output)).replace('PAYLOAD',quote(payload)).replace('UNINSTALL',uninstall),encoding='utf-8')
         env=os.environ.copy()

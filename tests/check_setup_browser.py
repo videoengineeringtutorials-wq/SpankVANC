@@ -1,12 +1,16 @@
 """A first-time user's setup flow, including consent and actionable errors."""
 from pathlib import Path
+from unittest.mock import patch
 import tempfile,threading
 from http.server import ThreadingHTTPServer
 from playwright.sync_api import sync_playwright,expect
 from test_setup import setup
 
 with tempfile.TemporaryDirectory() as folder:
-    wizard=setup.Setup(Path(folder),Path(folder)/'data')
+    wizard=setup.Setup(Path(__file__).resolve().parents[1],Path(folder)/'data')
+    include=Path(folder)/'SDK/Win/include';include.mkdir(parents=True)
+    (include/'DeckLinkAPIVersion.h').write_text('#define BLACKMAGIC_DECKLINK_API_VERSION 0x0c080000\n')
+    (include/'DeckLinkAPI.idl').touch()
     def pick():wizard.sdk='SDK/Win/include';wizard.remember(sdk=wizard.sdk)
     def install(device):
         assert device=='cpu'
@@ -24,8 +28,13 @@ with tempfile.TemporaryDirectory() as folder:
             page.goto(f'http://127.0.0.1:{port}')
             expect(page.locator('h1')).to_contain_text('PC ready')
             expect(page.locator('#install')).to_be_disabled()
-            page.locator('#pick-sdk').click()
-            expect(page.locator('#sdk-status')).to_have_text('SDK 12.8 selected.')
+            with patch.object(setup.webbrowser,'open') as vendor, page.expect_response('**/api/sdk'):
+                page.locator('#sdk-download').click()
+            vendor.assert_called_once_with(setup.SDK_URL)
+            expect(page.locator('#pick-sdk-folder')).to_be_enabled()
+            page.locator('#sdk-path').fill(str(include.parent.parent))
+            page.locator('#use-sdk-path').click()
+            expect(page.locator('#sdk-status')).to_contain_text('SDK 12.8 selected:')
             expect(page.locator('#install')).to_be_disabled()
             page.locator('#consent').check()
             expect(page.locator('#install')).to_be_enabled()

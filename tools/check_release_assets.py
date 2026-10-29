@@ -35,6 +35,8 @@ def check(path):
    if tuple(map(int,manifest['app_version'].split('.'))) >= (0,11,0):
     for required in ('setup/setup.py','setup/dependencies.json','setup/web/index.html','setup/web/app.js','setup/web/style.css'):
      assert prefix+required in names,'Missing guided setup: '+required
+   if tuple(map(int,manifest['app_version'].split('.'))) >= (0,11,1):
+    assert prefix+'setup/maintenance.py' in names,'Missing repair/uninstall preflight'
    for name,digest in manifest['files'].items():
     assert hashlib.sha256(archive.read(prefix+name)).hexdigest()==digest,'Manifest mismatch: '+name
   else:

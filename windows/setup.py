@@ -94,7 +94,7 @@ class Setup:
     def state(self):
         with self.lock:
             return dict(running=self.running, step=self.step, error=self.error, ready=self.ready,
-                        reboot=self.reboot, sdk=bool(self.sdk), sdk_label=Path(self.sdk).name if self.sdk else '',
+                        reboot=self.reboot, sdk=bool(self.sdk), sdk_label=self.sdk or '',
                         logs=list(self.logs), log_path=str(self.log_path))
 
     def command(self, args, *, capture=False, input_text=None, timeout=None):
@@ -136,36 +136,54 @@ class Setup:
     def remember(self, **fields):
         self.progress.update(fields); save_object(self.state_file, self.progress)
 
-    def pick_sdk(self):
-        if os.name != 'nt': raise ValueError('The SDK picker runs on Windows.')
-        script = """[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
-Add-Type -AssemblyName System.Windows.Forms
-$d=New-Object System.Windows.Forms.OpenFileDialog
-$d.Title='Choose your downloaded DeckLink SDK 12.8 ZIP'
-$d.Filter='DeckLink SDK ZIP|*.zip|Already extracted SDK version file|DeckLinkAPIVersion.h'
-if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}"""
-        chosen = self.command(['powershell.exe','-NoProfile','-STA','-Command',script],capture=True)
-        if not chosen: return
-        path = Path(chosen)
-        if path.suffix.lower() == '.zip':
-            identity = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
-            destination = self.data / ('sdk-'+identity)
-            destination.mkdir(exist_ok=True)
-            safe_extract(path,destination)
-            candidates = [p.parent for p in destination.rglob('DeckLinkAPIVersion.h')
-                          if p.parent.name.lower() == 'include' and p.parent.parent.name.lower() == 'win']
-            if len(candidates) != 1: raise ValueError('Could not find one Win/include folder in this SDK ZIP. Select its DeckLinkAPIVersion.h instead.')
-            path = candidates[0]
-        else: path = path.parent
-        # Check SDK version before installing or downloading build prerequisites.
-        helper = capture_helper(self.root)
-        sdk_checker = self.root / 'build-support/tools/bootstrap_windows_capture.py'
-        if not sdk_checker.exists(): sdk_checker = self.root / 'tools/bootstrap_windows_capture.py'
-        spec=importlib.util.spec_from_file_location('spankvanc_setup_sdk', sdk_checker)
+    def select_sdk(self, value):
+        path=Path(str(value).strip().strip('"')).expanduser()
+        if not path.exists():raise ValueError('That SDK path was not found. Choose its folder or ZIP again.')
+        if path.suffix.lower()=='.zip' and path.is_file():
+            identity=hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+            destination=self.data/('sdk-'+identity);destination.mkdir(exist_ok=True)
+            safe_extract(path,destination);path=destination
+        elif path.is_file():path=path.parent
+        candidates=[path,path/'Win/include',path/'include']
+        if not any((p/'DeckLinkAPIVersion.h').is_file() for p in candidates):
+            if path==Path(path.anchor):raise ValueError('Select the SDK folder, not an entire drive.')
+            for current,dirs,files in os.walk(path):
+                relative=Path(current).relative_to(path)
+                if len(relative.parts)>=4:dirs[:]=[]
+                if 'DeckLinkAPIVersion.h' in files and Path(current).parent.name.lower()=='win':candidates.append(Path(current))
+        sdk_checker=self.root/'build-support/tools/bootstrap_windows_capture.py'
+        if not sdk_checker.exists():sdk_checker=self.root/'tools/bootstrap_windows_capture.py'
+        spec=importlib.util.spec_from_file_location('spankvanc_setup_sdk',sdk_checker)
         checker=importlib.util.module_from_spec(spec);spec.loader.exec_module(checker)
-        checker.sdk_version(path)
-        self.sdk = str(path.resolve()); self.remember(sdk=self.sdk)
-        self.log('DeckLink SDK 12.8 selected. It will only be used for your local build.')
+        valid=[]
+        for candidate in candidates:
+            if (candidate/'DeckLinkAPIVersion.h').is_file():
+                try:checker.sdk_version(candidate)
+                except ValueError:continue
+                if candidate.resolve() not in valid:valid.append(candidate.resolve())
+        if len(valid)!=1:raise ValueError('Choose the DeckLink SDK 12.8 folder (or its Win/include folder). Newer SDKs are not supported by this build.')
+        self.sdk=str(valid[0]);self.remember(sdk=self.sdk)
+        self.log('Existing DeckLink SDK 12.8 selected. No new download is needed.')
+
+    def pick_sdk(self, folder=False):
+        if os.name!='nt':raise ValueError('The SDK picker runs on Windows.')
+        script="""[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
+Add-Type -AssemblyName System.Windows.Forms
+"""
+        if folder:
+            script+="""$d=New-Object System.Windows.Forms.FolderBrowserDialog
+$d.Description='Choose your existing DeckLink SDK 12.8 folder or Win include folder'
+$d.ShowNewFolderButton=$false
+if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.SelectedPath)}"""
+        else:
+            script+="""$d=New-Object System.Windows.Forms.OpenFileDialog
+$d.Title='Choose your downloaded DeckLink SDK 12.8 ZIP'
+$d.Filter='DeckLink SDK ZIP|*.zip'
+if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}"""
+        self.step='Choose an SDK folder in the Windows dialog' if folder else 'Choose an SDK ZIP in the Windows dialog'
+        chosen=self.command(['powershell.exe','-NoProfile','-STA','-Command',script],capture=True)
+        if chosen:self.select_sdk(chosen)
+        self.step='Ready to set up this PC'
 
     def ensure_wsl(self):
         helper = capture_helper(self.root); wsl = helper.wsl_executable()
@@ -340,6 +358,11 @@ def handler(setup,token,port):
                 data=json.loads(self.rfile.read(length))
                 if not isinstance(data,dict):raise ValueError('Setup request must contain an object.')
                 if self.path=='/api/pick-sdk':setup.start(setup.pick_sdk)
+                elif self.path=='/api/pick-sdk-folder':setup.start(lambda:setup.pick_sdk(folder=True))
+                elif self.path=='/api/select-sdk':
+                    value=data.get('path')
+                    if not isinstance(value,str) or not value.strip():raise ValueError('Enter the existing SDK folder path.')
+                    setup.start(lambda:setup.select_sdk(value))
                 elif self.path=='/api/install':
                     if data.get('consent') is not True:raise ValueError('Review the setup actions and select the consent box first.')
                     device=data.get('device','cpu');setup.start(lambda:setup.run(device))
@@ -381,7 +404,7 @@ def main():
             return
     server=ThreadingHTTPServer(('127.0.0.1',0),handler(setup,'',0))
     server.RequestHandlerClass=handler(setup,secrets.token_urlsafe(32),server.server_port)
-    save_object(setup.data/'session.json',{'port':server.server_port})
+    save_object(setup.data/'session.json',{'port':server.server_port,'pid':os.getpid(),'root':str(setup.root.resolve())})
     if not args.no_browser:webbrowser.open('http://127.0.0.1:'+str(server.server_port))
     try:server.serve_forever()
     except KeyboardInterrupt:pass

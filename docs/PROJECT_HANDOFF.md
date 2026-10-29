@@ -2,7 +2,7 @@
 
 ## Current state
 
-The source/app version is **0.11.0**, adding a guided online Windows installer.
+The source/app version is **0.11.1**, adding a guided online Windows installer.
 The working Windows workstation remains on 0.10.0 with saved settings,
 route and selected 0.9.1 media engine preserved. No app or media process was
 started, and the owner license was not activated during installation.
@@ -27,6 +27,13 @@ Shared installation IDs are saved random state, not hardware fingerprints.
   `../licensing/README.md` for implementation and operator steps.
 - Issued keys, operator SQL, database credentials and deployment scripts remain
   private, outside the checkout. Never include license.json in packages.
+
+## 0.11.1 installer repair
+
+- Existing SDK folders and pasted paths are accepted, including after visiting the download page.
+- Recognized installs support repair and same-folder reinstall; private backups preserve overwritten files.
+- Idle setup closes before uninstall; running app/media and busy setup block removal.
+- 99 unit/media tests, browser SDK selection and native Windows install → idle-wizard uninstall → same-folder reinstall → repair passed. Settings and a local engine sentinel survived.
 
 ## 0.11.0 guided setup
 

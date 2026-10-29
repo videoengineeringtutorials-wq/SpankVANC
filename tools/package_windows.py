@@ -41,6 +41,7 @@ files['python/python314._pth']=b'python314.zip\r\n.\r\n..\\app\r\n'
 for path in sorted((ROOT/'spankvanc').rglob('*')):
     if path.is_file() and '__pycache__' not in path.parts and path.suffix!='.pyc':
         files['app/'+path.relative_to(ROOT).as_posix()]=path.read_bytes()
+files['setup/maintenance.py']=(ROOT/'windows/maintenance.py').read_bytes()
 files['setup/setup.py']=(ROOT/'windows/setup.py').read_bytes()
 files['setup/dependencies.json']=(ROOT/'windows/setup_dependencies.json').read_bytes()
 for path in sorted((ROOT/'windows/setup_web').glob('*')):

@@ -104,3 +104,25 @@ class SetupHttpTests(unittest.TestCase):
             self.assertEqual(self.request('/api/install',{'consent':False},headers),400)
             self.assertEqual(self.request('/api/install',[],headers),400)
             start.assert_not_called()
+
+class ExistingSdkTests(unittest.TestCase):
+    def test_existing_root_include_header_and_zip_are_all_selectable(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base=Path(folder);include=base/'already downloaded SDK/Win/include';include.mkdir(parents=True)
+            (include/'DeckLinkAPIVersion.h').write_text('#define BLACKMAGIC_DECKLINK_API_VERSION 0x0c080000\n')
+            (include/'DeckLinkAPI.idl').touch()
+            wizard=setup.Setup(ROOT,base/'private')
+            for path in (include.parent.parent,include,include/'DeckLinkAPIVersion.h'):
+                wizard.select_sdk(str(path));self.assertEqual(Path(wizard.sdk),include.resolve())
+            archive=base/'sdk.zip'
+            with zipfile.ZipFile(archive,'w') as z:
+                for file in include.iterdir():z.write(file,'SDK/Win/include/'+file.name)
+            wizard.select_sdk(str(archive));self.assertTrue(Path(wizard.sdk).is_dir())
+            self.assertIn('sdk-',wizard.sdk)
+    def test_invalid_selection_keeps_previous_sdk(self):
+        with tempfile.TemporaryDirectory() as folder:
+            base=Path(folder);wizard=setup.Setup(ROOT,base/'private');wizard.sdk='previous valid SDK'
+            bad=base/'newer';bad.mkdir();(bad/'DeckLinkAPIVersion.h').write_text('#define BLACKMAGIC_DECKLINK_API_VERSION 0x0e040000\n')
+            (bad/'DeckLinkAPI.idl').touch()
+            with self.assertRaises(ValueError):wizard.select_sdk(str(bad))
+            self.assertEqual(wizard.sdk,'previous valid SDK')

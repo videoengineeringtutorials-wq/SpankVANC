@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.1 — SDK selection and installer recovery
+
+- Select an existing SDK folder or paste its path after opening the download page.
+- Repair recognized installations and reinstall after uninstall while preserving settings and local engines; back up replaced files privately.
+- Close idle setup before uninstalling to avoid locked Python files. Busy setup or running media blocks removal with an explanation.
+- Add Windows install/uninstall/reinstall lifecycle regression coverage.
+
 ## 0.11.0 — guided public Windows setup
 
 - Add a single online Setup EXE with per-user app installation, shortcuts,

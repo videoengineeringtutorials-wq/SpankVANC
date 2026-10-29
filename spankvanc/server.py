@@ -15,7 +15,7 @@ WEB = Path(__file__).parent / "web"
 
 def make_handler(engine, token, port):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "SpankVANC/0.11.0"
+        server_version = "SpankVANC/0.11.1"
 
         def authorized_host(self):
             return self.headers.get("Host") in (f"127.0.0.1:{port}", f"localhost:{port}")

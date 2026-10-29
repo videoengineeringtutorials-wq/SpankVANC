@@ -1,6 +1,6 @@
-# Guided Windows setup (0.11.0)
+# Guided Windows setup (0.11.1)
 
-For public testers, download **SpankVANC-0.11.0-Windows11-x64-Setup.exe** from
+For public testers, download **SpankVANC-0.11.1-Windows11-x64-Setup.exe** from
 [Releases](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases).
 This is one entry point for installation, downloads and the local engine build.
 It is an **online installer**, not an offline bundle of every dependency.
@@ -11,7 +11,7 @@ It is an **online installer**, not an offline bundle of every dependency.
    PowerShell `Get-FileHash`, or have the operator verify the download for you.
    The installer is not code-signed; Windows may show an unknown-publisher
    warning. Check its origin before running it.
-2. Run the EXE, choose a new writable folder and finish installation. Keep
+2. Run the EXE, choose a writable folder and finish installation. Keep
    **Open guided setup** selected. The wizard opens in your browser on this PC.
 3. If your Blackmagic card already works, keep its existing Desktop Video
    driver. Otherwise use **Open Blackmagic downloads** and install a compatible
@@ -21,13 +21,15 @@ It is an **online installer**, not an offline bundle of every dependency.
    **Desktop Video 12.8 SDK** registration/download page and review its terms. Use
    **Choose SDK ZIP** to select that download. Setup extracts it and locates
    Win/include automatically; you do not have to find individual header files.
+   Already have it? Choose **Use existing SDK folder…** or paste its folder path
+   and click **Use this folder**. Opening the download page does not prevent this.
    If that vendor page later becomes unavailable, obtain 12.8 through Blackmagic
    support. This tested build does not accept newer SDKs.
 5. Keep **CPU** selected for the first test. Review the download/build actions,
    check the consent box and click **Set up this PC**.
 6. Approve Windows' administrator prompt for its Linux build support. If setup
    requests a restart, save your work and restart Windows yourself. Open the
-   desktop **Finish SpankVANC Setup 0.11.0** shortcut afterward and click
+   desktop **Finish SpankVANC Setup 0.11.1** shortcut afterward and click
    **Set up this PC** again. SDK selection and completed work are remembered.
 7. If Microsoft C++ runtime setup opens, complete its vendor installer and
    return to the wizard. No commands or Linux account creation are required.
@@ -47,7 +49,11 @@ not bypass vendor agreements or Windows administrator controls.
 
 - The EXE contains the app, its verified CPython control runtime, build support,
   license notices and browser wizard. It creates per-user desktop/Start menu
-  shortcuts and an uninstaller. It refuses to overwrite an existing app folder.
+  shortcuts and an uninstaller. Recognized app folders can be repaired; replaced
+  files and settings are backed up privately under the setup cache. Unrelated
+  nonempty folders are rejected. Reinstalling after uninstall preserves settings
+  and local engines. Close the app first; idle setup closes automatically, while
+  a running setup task must finish before removal.
 - A separate official **Python 3.13.12** distribution is downloaded into
   `%LOCALAPPDATA%\SpankVANC-Setup\speech-python`. Existing Python installations
   and legacy audioWhisper scripts are not modified.
