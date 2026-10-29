@@ -24,6 +24,11 @@ try:
   assert child.poll() is None,'wizard exited'
   time.sleep(.1)
  assert session.exists(),'no session'
+ original_session=session.read_bytes()
+ second=subprocess.run([str(root/'python/pythonw.exe'),str(root/'setup/setup.py'),'--no-browser'],env=env,timeout=15)
+ assert second.returncode==0,'Second launch failed'
+ assert session.read_bytes()==original_session,'Second launch replaced live session'
+ assert child.poll() is None,'Original wizard stopped'
  r=subprocess.run([str(root/'Uninstall.exe'),'/S','_?='+str(root)],env=env,timeout=120)
  assert r.returncode==0,('uninstall',r.returncode)
  assert child.wait(timeout=15)==0

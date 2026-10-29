@@ -2,6 +2,7 @@
 from __future__ import annotations
 import argparse
 from collections import deque
+from contextlib import contextmanager
 import hashlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import importlib.util
@@ -14,6 +15,7 @@ import socket
 import subprocess
 import sys
 import threading
+import time
 import urllib.request
 import webbrowser
 import zipfile
@@ -382,35 +384,66 @@ def handler(setup,token,port):
     return Handler
 
 
+@contextmanager
+def setup_lock(data):
+    # File locks coordinate the desktop and SSH/installer Windows sessions.
+    # A Local\\ mutex only coordinates processes in one logon session.
+    data.mkdir(parents=True,exist_ok=True)
+    with (data/'setup.lock').open('a+b') as stream:
+        stream.seek(0,2)
+        if not stream.tell():stream.write(b'0');stream.flush()
+        stream.seek(0)
+        acquired=False
+        try:
+            try:
+                if os.name=='nt':
+                    import msvcrt
+                    msvcrt.locking(stream.fileno(),msvcrt.LK_NBLCK,1)
+                else:
+                    import fcntl
+                    fcntl.flock(stream.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
+                acquired=True
+            except OSError:pass
+            yield acquired
+        finally:
+            if acquired:
+                stream.seek(0)
+                if os.name=='nt':msvcrt.locking(stream.fileno(),msvcrt.LK_UNLCK,1)
+                else:fcntl.flock(stream.fileno(),fcntl.LOCK_UN)
+
+
+def existing_setup_url(data):
+    for _ in range(30):
+        try:
+            port=load_object(data/'session.json').get('port')
+            if type(port)!=int or not 1<=port<=65535:raise ValueError('Invalid port')
+            url='http://127.0.0.1:'+str(port)
+            with urllib.request.urlopen(url+'/',timeout=1) as response:
+                if b'name="setup-token"' in response.read():return url
+        except (OSError,ValueError):pass
+        time.sleep(.1)
+    raise ValueError('The existing setup window is not responding. Close it and reopen Finish SpankVANC Setup.')
+
+
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--no-browser',action='store_true');args=p.parse_args()
     setup=Setup()
-    handle=None
-    kernel=None
-    if os.name=='nt':
-        import ctypes
-        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
-        kernel.CreateMutexW.argtypes=[ctypes.c_void_p,ctypes.c_bool,ctypes.c_wchar_p]
-        kernel.CreateMutexW.restype=ctypes.c_void_p
-        kernel.CloseHandle.argtypes=[ctypes.c_void_p]
-        identity=hashlib.sha256(str(setup.data).encode()).hexdigest()[:16]
-        handle=kernel.CreateMutexW(None,False,'Local\\SpankVANCSetup-'+identity)
-        if not handle:raise OSError('Could not acquire the setup lock.')
-        if ctypes.get_last_error()==183:
-            session=load_object(setup.data/'session.json')
-            port=session.get('port')
-            if not args.no_browser and type(port)==int and 1<=port<=65535:webbrowser.open('http://127.0.0.1:'+str(port))
-            kernel.CloseHandle(handle)
+    with setup_lock(setup.data) as acquired:
+        if not acquired:
+            url=existing_setup_url(setup.data)
+            if not args.no_browser:webbrowser.open(url)
             return
-    server=ThreadingHTTPServer(('127.0.0.1',0),handler(setup,'',0))
-    server.RequestHandlerClass=handler(setup,secrets.token_urlsafe(32),server.server_port)
-    save_object(setup.data/'session.json',{'port':server.server_port,'pid':os.getpid(),'root':str(setup.root.resolve())})
-    if not args.no_browser:webbrowser.open('http://127.0.0.1:'+str(server.server_port))
-    try:server.serve_forever()
-    except KeyboardInterrupt:pass
-    finally:
-        server.server_close()
-        if handle:kernel.CloseHandle(handle)
+        server=ThreadingHTTPServer(('127.0.0.1',0),handler(setup,'',0))
+        server.RequestHandlerClass=handler(setup,secrets.token_urlsafe(32),server.server_port)
+        session=setup.data/'session.json'
+        save_object(session,{'port':server.server_port,'pid':os.getpid(),'root':str(setup.root.resolve())})
+        if not args.no_browser:
+            threading.Thread(target=webbrowser.open,args=('http://127.0.0.1:'+str(server.server_port),),daemon=True).start()
+        try:server.serve_forever()
+        except KeyboardInterrupt:pass
+        finally:
+            server.server_close()
+            if load_object(session).get('pid')==os.getpid():session.unlink(missing_ok=True)
 
 
 if __name__=='__main__':

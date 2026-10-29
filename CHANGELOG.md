@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.4 — reliable setup relaunch
+
+- Coordinate setup across Windows logon sessions using a per-user file lock, so a second launch opens the live page instead of overwriting its saved port.
+- Verify the saved setup page before reopening it and remove expired session records on clean shutdown.
+- Replace old versioned desktop setup shortcuts with one Finish SpankVANC Setup shortcut.
+
 ## 0.11.3 — resilient build source downloads
 
 - Retry source-download connection failures, bound connection waits, and automatically retry over IPv4 when normal connections fail. Both paths require the same pinned SHA-256 before extraction.

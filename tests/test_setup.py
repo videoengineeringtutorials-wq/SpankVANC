@@ -14,6 +14,14 @@ spec=importlib.util.spec_from_file_location('guided_setup',ROOT/'windows/setup.p
 setup=importlib.util.module_from_spec(spec);spec.loader.exec_module(setup)
 
 class SetupTests(unittest.TestCase):
+    def test_setup_lock_is_exclusive_and_released(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data=Path(folder)
+            with setup.setup_lock(data) as first:
+                self.assertTrue(first)
+                with setup.setup_lock(data) as second:self.assertFalse(second)
+            with setup.setup_lock(data) as reopened:self.assertTrue(reopened)
+
     def test_archive_rejects_traversal_windows_drives_and_backslashes(self):
         with tempfile.TemporaryDirectory() as folder:
             root=Path(folder)

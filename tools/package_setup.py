@@ -103,7 +103,8 @@ Section "SpankVANC"
   ${If} $NoIntegration != "yes"
   CreateDirectory "$SMPROGRAMS\SpankVANC VERSION"
   CreateShortcut "$SMPROGRAMS\SpankVANC VERSION\Finish setup.lnk" "$INSTDIR\python\pythonw.exe" '-X utf8 "$INSTDIR\setup\setup.py"'
-  CreateShortcut "$DESKTOP\Finish SpankVANC Setup VERSION.lnk" "$INSTDIR\python\pythonw.exe" '-X utf8 "$INSTDIR\setup\setup.py"'
+  Delete "$DESKTOP\Finish SpankVANC Setup *.lnk"
+  CreateShortcut "$DESKTOP\Finish SpankVANC Setup.lnk" "$INSTDIR\python\pythonw.exe" '-X utf8 "$INSTDIR\setup\setup.py"'
   CreateShortcut "$SMPROGRAMS\SpankVANC VERSION\SpankVANC.lnk" "$INSTDIR\Start SpankVANC.cmd"
   CreateShortcut "$DESKTOP\SpankVANC VERSION.lnk" "$INSTDIR\Start SpankVANC.cmd"
   ${EndIf}
@@ -142,7 +143,7 @@ UNINSTALL
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
   ${If} $0 != "yes"
-  Delete "$DESKTOP\Finish SpankVANC Setup VERSION.lnk"
+  Delete "$DESKTOP\Finish SpankVANC Setup.lnk"
   Delete "$DESKTOP\SpankVANC VERSION.lnk"
   Delete "$SMPROGRAMS\SpankVANC VERSION\Finish setup.lnk"
   Delete "$SMPROGRAMS\SpankVANC VERSION\SpankVANC.lnk"
