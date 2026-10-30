@@ -2,6 +2,10 @@
 
 ## 0.12.1 — selectable YouTube bitrate
 
+- October 30 packaging refresh: update the Windows guide to 0.12.1 and clarify
+  Finish Setup recovery versus installer repair. Includes the existing pip-cache,
+  IPv4 source-download and live-wizard relaunch fixes; runtime code is unchanged.
+
 - Add per-output 6, 8, 10 and 14 Mbit/s CBR choices. Preserve the existing
   14 Mbit/s default, 1080p30 format, two-second GOP and independent ANC policies.
 - Apply the selected rate to target/min/max bitrate and twice that rate to VBV.

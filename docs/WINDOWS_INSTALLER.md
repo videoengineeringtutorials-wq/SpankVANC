@@ -1,6 +1,6 @@
-# Guided Windows setup (0.11.4)
+# Guided Windows setup (0.12.1)
 
-For public testers, download **SpankVANC-0.11.4-Windows11-x64-Setup.exe** from
+For public testers, download **SpankVANC-0.12.1-Windows11-x64-Setup.exe** from
 [Releases](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases).
 This is one entry point for installation, downloads and the local engine build.
 It is an **online installer**, not an offline bundle of every dependency.
@@ -83,9 +83,17 @@ Whisper/Torch binaries or model weights. It does not install the old standalone
 ## Help, retries and removal
 
 If a step fails, fix its reported problem and click **Retry setup**. Keep the
-same app folder and the per-user setup data. Do not rerun the EXE into that
-existing folder; use its Finish setup shortcut. Setup will not mark failed
-steps successful or replace saved engine paths with an unverified build.
+same app folder and the per-user setup data. Open **Finish SpankVANC Setup**
+on the desktop to resume dependency setup. To repair missing or damaged app
+files, close the app and idle wizard, then run the current Setup EXE into the
+recognized installation folder. Setup will not mark failed steps successful or
+replace saved engine paths with an unverified build.
+
+Version 0.12.1 includes the earlier installation recovery fixes: managed speech
+installation bypasses the shared pip wheel cache; source downloads retry
+connection failures with an IPv4 fallback and pinned checksum verification;
+and relaunching Finish SpankVANC Setup reconnects to the live wizard across
+Windows logon sessions. Completed downloads and valid local builds can be reused.
 
 Logs and resumable state are under `%LOCALAPPDATA%\SpankVANC-Setup`. Review logs
 before sharing them. Do not share license.json, saved settings/routes, SDK files,
