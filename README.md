@@ -7,6 +7,43 @@ processing runs in a separately installed FFmpeg. Media and control remain local
 **Version 0.12.1 — experimental.** Test on a spare route before using a live
 program. CPU encoding is used; an NVIDIA GPU is not required.
 
+## Windows downloads
+
+**Current tester release: 0.12.1 — Windows 11 x64.** Start with the guided
+installer for a new PC, or use the portable ZIP if you already have the required
+engines and dependencies.
+
+| Download | Use | Verify |
+| --- | --- | --- |
+| [Windows Setup EXE](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.12.1/SpankVANC-0.12.1-Windows11-x64-Setup.exe) | Guided installation and repair | [SHA-256](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.12.1/SpankVANC-0.12.1-Windows11-x64-Setup.exe.sha256) |
+| [Windows portable App ZIP](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.12.1/SpankVANC-0.12.1-Windows11-x64-App.zip) | Extract and run with bundled Python | [SHA-256](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.12.1/SpankVANC-0.12.1-Windows11-x64-App.zip.sha256) |
+
+[0.12.1 release notes](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/tag/v0.12.1)
+· [All releases and previous Windows downloads](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases)
+· [Windows installation guide](docs/WINDOWS_INSTALLER.md)
+
+The installer downloads dependencies and builds the media engine locally.
+FFmpeg, Blackmagic SDK files and drivers are supplied separately. The **source
+ZIP** on the release page is for developers and does not include the portable
+Python runtime.
+
+## Screenshots
+
+These screenshots show an earlier development build running on Windows; labels
+and available controls have changed since then. Click an image to view it full size.
+
+**Signal routing and output policies**
+
+[![SpankVANC routing panel with DeckLink SDI input, a UDP output and caption policies](docs/screenshots/signal-routing.jpg)](docs/screenshots/signal-routing.jpg)
+
+**Live incoming captions and SCTE monitoring**
+
+[![SpankVANC live CC1 caption display with SCTE conversion counters and caption history](docs/screenshots/live-captions.jpg)](docs/screenshots/live-captions.jpg)
+
+**Route readiness, system capabilities and engine activity**
+
+[![SpankVANC route readiness, detected media capabilities and running engine log](docs/screenshots/engine-status.jpg)](docs/screenshots/engine-status.jpg)
+
 ## Get running
 
 SpankVANC is MIT-licensed open source. Internet access is needed for setup downloads, not for application activation or local operation.
@@ -44,7 +81,8 @@ be built locally. See [redistribution audit](docs/REDISTRIBUTION.md) and
 [third-party notices](THIRD_PARTY_NOTICES.md) before packaging dependencies.
 Historical Extended trial ZIPs are not public release assets.
 
-Choose the **Windows11-x64-App.zip** asset for normal Windows installation.
+Choose the **Windows11-x64-Setup.exe** for guided installation, or the
+**Windows11-x64-App.zip** for portable use.
 The **source.zip** is for developers; GitHub’s automatic “Source code” downloads
 do not include the portable Python runtime.
 
