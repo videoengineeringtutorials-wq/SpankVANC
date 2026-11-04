@@ -12,7 +12,7 @@ from test_decklink import DeckLinkOutputTests
 fixture = DeckLinkOutputTests(); fixture.setUp()
 same_name = fixture.cfg['input']['address']
 fixture.cap['decklink_outputs'].append({'name':same_name,'output':True,'duplex':'half'})
-fixture.cap.update(decklink_scte_output=True,decklink_options=["spankvanc_scte104"],recaption_decklink=True,recaption_runtime=True,whisper={"available":True,"cuda":True,"models":["small.en","turbo"]})
+fixture.cap.update(caption_formats_decklink=True,decklink_scte_output=True,decklink_options=["spankvanc_scte104"],recaption_decklink=True,recaption_runtime=True,whisper={"available":True,"cuda":True,"models":["small.en","turbo"]})
 with tempfile.TemporaryDirectory() as folder, patch('spankvanc.engine.doctor', return_value=fixture.cap):
     engine = Engine(Path(folder)); engine.config = fixture.cfg
     server = ThreadingHTTPServer(('127.0.0.1', 0), make_handler(engine, 'test', 0))

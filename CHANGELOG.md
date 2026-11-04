@@ -1,5 +1,55 @@
 # Changelog
 
+## 0.14.0 — local Spanish translation and optional CC2
+
+- Add local OPUS-MT English-to-Spanish Dashboard translations with manual text
+  preview and live Whisper phrase translation using isolated CPU INT8 inference.
+- Add per-output **Add Spanish translation on CC2**, off by default. English
+  remains on CC1 and native 708 Service 1; Spanish preserves 608 accents, ñ, ¿/¡.
+  Requires English recognition and 608 or combined output. Manual preview text
+  never goes on air. Closed route sinks reject late translations.
+- Add an optional Spanish translation step to Windows guided setup. Download
+  pinned, hash-verified Helsinki-NLP source weights and convert them locally;
+  isolate translation runtime and converter packages from Whisper and the app.
+  No model, FFmpeg engine, SDK or driver is bundled in the installer.
+- Require the current bilingual engine when rebuilding via setup; preserve
+  existing engines, routes and settings during repair. Shared 608 bandwidth
+  still uses the existing four-second Spanish and ten-second English backlog
+  bounds; phrases may be skipped. This release does not change that policy.
+- Includes the previously unpublished native 708 output, manual SCTE controls,
+  SRT connection modes and background-console fixes described below.
+- Experimental/unsigned. Physical Spanish CC2 reception and sustained bilingual
+  throughput remain unverified; recognition and translation require review.
+
+## 0.13.1 — hide background Windows consoles
+
+- Start managed FFmpeg/Whisper children with CREATE_NO_WINDOW while retaining
+  their process groups and captured logs. Use a private quit pipe so Windows
+  Stop finishes FFmpeg cleanly without a console. Hide console allocation for discovery
+  and capability probes as well. No media-engine rebuild is required.
+- Record an open-licensed local English-to-Spanish translation shortlist and
+  the CPU INT8 evaluation plan; no translation model is installed.
+
+## 0.13.0 — native 708 output and manual SCTE
+
+- Add native CEA-708 Service 1 encoding and independent per-output 608 / 708 /
+  608 + 708 choices. Generated services share the paced transcription, with
+  two-row roll-up, per-line window refresh and silence clearing.
+- Announce selected generated services in SDI CDP/VANC. Keep legacy generated
+  routes on 608, and preserve source captions by default. Output pass mode can
+  select existing types without changing input capture or generating captions.
+- Gate new format controls against the matching local engine; keep older
+  engines usable for their existing 608 routes.
+
+
+- Per-output manual Start/End cues with break duration: SCTE-104 on DeckLink,
+  SCTE-35 on UDP/SRT/TS files. RTMP and YouTube are excluded. New engine support
+  is capability-gated; source monitoring and other outputs stay independent.
+- Input and output SRT Caller/Listener/Rendezvous selectors, with saved URL
+  options preserved.
+- Document the initial basic character set, fixed native Service 1 styling,
+  source-pass behavior and pending downstream SDI verification.
+
 ## 0.12.1 — selectable YouTube bitrate
 
 - October 30 packaging refresh: update the Windows guide to 0.12.1 and clarify

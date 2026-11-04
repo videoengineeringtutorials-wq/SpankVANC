@@ -1,6 +1,7 @@
 """Read-only FFmpeg DeckLink discovery for machines without our SDK diagnostic."""
 import re
 import subprocess
+from .process_utils import hidden_process_options
 
 
 def strip_prefix(line):
@@ -36,7 +37,7 @@ def discover(binary):
     def query(*args):
         # The legacy list commands deliberately exit with a non-zero status.
         p=subprocess.run([binary,'-hide_banner','-nostdin',*args],capture_output=True,
-                         text=True,errors='replace',timeout=15)
+                         text=True,errors='replace',timeout=15, **hidden_process_options())
         return p.stdout+p.stderr
     try:
         text=query('-f','decklink','-list_devices','1','-i','dummy')
@@ -71,7 +72,7 @@ def discover_outputs(binary):
     """List actual output ports without decoding video or changing profiles."""
     def query(*args):
         p = subprocess.run([binary, '-hide_banner', '-nostdin', *args],
-                           capture_output=True, text=True, errors='replace', timeout=15)
+                           capture_output=True, text=True, errors='replace', timeout=15, **hidden_process_options())
         return p.stdout + p.stderr
     try:
         names = parse_sink_names(query('-sinks', 'decklink'))

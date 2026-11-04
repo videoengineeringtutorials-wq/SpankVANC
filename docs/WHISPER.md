@@ -1,3 +1,92 @@
+# Optional Spanish CC2 translation
+
+On each output, select **audioWhisper · replace** and enable
+**Add Spanish translation on CC2**. The checkbox defaults off. Use **608** or
+**608 + 708**; enabling CC2 while 708-only is selected changes the format to both.
+Choosing 708-only or Pass/Strip disables the CC2 option for that output.
+Whisper language must be **en** for this English-to-Spanish model.
+
+English remains on CEA-608 CC1. Translated Spanish uses **CC2 on field 1**,
+including ñ, accented vowels, ¿ and ¡. Native 708 Service 1 remains English;
+this option does not create a Spanish 708 Service 2. Other outputs keep their
+independent caption policy. Select CC2 on the receiving analyzer/player.
+
+In the 0.14.0 Windows setup, select **Install local English → Spanish translation**,
+then rebuild the local engine
+with current build support. Preflight checks for both. Model paths default to
+`translation/python` and `translation/model` beside the runtime directory; the
+model directory contains source.spm, target.spm and the converted ct2 model.
+`SPANKVANC_TRANSLATION_HOME` overrides that folder. The translator loads before
+capture starts. Core application and Whisper dependencies remain separate.
+
+CC1 and CC2 share the 608 field-1 transmission capacity. The selected output
+uses an append-only phrase-atomic journal; unselected outputs retain the original
+English journal. Spanish is admitted only within a four-second estimated total
+backlog; English has a ten-second bound. Estimates conservatively assume 25 pairs
+per second. Overload skips whole phrases and is visible in the Dashboard caption
+skip count/backlog. Queued translations retain their original route sink, which
+closes at route end, so late results cannot enter a later route. Silence clears
+both services. Program A/V is not delayed. Translation errors remain possible.
+Manual Dashboard test text is never sent to CC2.
+
+Verification: independent CCExtractor decoding of H.264 and MPEG-2 608/both,
+Spanish basic/special/extended glyphs, English CC1/708 isolation, unselected
+English-only and stripped outputs, with300 frames retained per output.
+A synthetic file route on the Windows workstation exercised actual Whisper,
+OPUS translation and the locally built engine, with three translations admitted
+and no skipped phrases. Physical CC2 reception and sustained program throughput
+still require receiver/live testing.
+
+---
+
+# Generated 608 / native 708 output — 0.13.0
+
+On each desired output, choose **audioWhisper · replace** under Captions, then
+choose **Output caption format**:
+
+- **608:** existing CC1 two-row roll-up captions.
+- **708:** native Service 1 with a visible two-row roll-up window.
+- **608 + 708:** both services carry the same paced text together.
+
+Select formats independently on SDI, UDP, SRT, file, RTMP or YouTube outputs.
+Caption format is independent of SCTE policy. SDI uses the existing DeckLink
+V210 → CDP/VANC path; H.264 and MPEG-2 carry the caption tuples in A/53 data.
+The matching locally rebuilt engine is required for 708 or combined generation;
+preflight blocks older engines. Saved replacement routes without a format keep
+608; saved passthrough routes keep both source caption types.
+
+The native 708 encoder consumes the app's paced generated CC1 journal to build
+real DTVCC packets and Service 1 commands. It initializes and refreshes window 0,
+uses bottom-centred two-row roll-up, suppresses duplicated 608 controls, preserves
+32-column word wrapping, and clears on the worker's silence timeout. Both formats
+therefore share text normalization and pacing. The initial encoder uses the
+existing transliterated basic character set, one service and fixed styling;
+Unicode, multiple generated services and arbitrary input 608-to-708 conversion
+are outside this version. Input capture and monitoring are unchanged.
+
+With **Pass through**, the format selector keeps only the requested types already
+present in the source; it does not generate missing captions or convert source
+608 into native 708. **608 + 708** preserves the existing source tuples. **Strip**
+removes captions and hides the format selector.
+
+Generated SDI CDPs announce the actual selected services: service number 0 for
+608 compatibility and Service 1 for native 708, with matching start/complete
+flags and language metadata. This follows [SMPTE ST 334-2](https://pub.smpte.org/latest/st334-2/st0334-2-2015.pdf).
+Digital packets use sequence counts, complete service blocks, valid start and
+continuation tuples, and frame-rate-specific caption budgets.
+
+Verification includes independent CCExtractor native-708 text decoding from
+actual H.264 and MPEG-2 output in 708-only and combined modes, 608 text decoding,
+full frame counts, packet sequencing and output isolation. Native Windows tests
+cover 24 format/rate combinations through the real filter, V210 packet carriage,
+CDP service parsing, VANC checksums, partial journal appends and source-frame
+isolation. The user subsequently confirmed the new output worked on their Leader monitor.
+This establishes user-reported physical reception, with format/rate and separate
+service checks unspecified. Select CC1 and Service 1 independently on the
+analyzer when checking both mode.
+
+---
+
 # Live audioWhisper caption replacement (0.9.1)
 
 Select **audioWhisper · replace** under Captions on each desired output. Other

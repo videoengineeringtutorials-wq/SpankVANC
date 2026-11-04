@@ -1,3 +1,131 @@
+# November 3, 2026 — 0.14.0 Windows release preparation
+
+Packages the current local translation/CC2 work and earlier unpublished native
+708/manual SCTE/SRT/hidden-process changes. Version0.14.0 across metadata/UI.
+Guided setup now offers an optional Spanish checkbox, downloads pinned original
+Helsinki-NLP weights with eight source SHA256 checks, converts locally to CPU
+INT8, and verifies actual translation before marking the model usable. Runtime
+uses app translation/python; converter dependencies use a separate setup-cache
+target, reusing managed speech Torch without changing its packages. Existing
+manual translation/venv installations remain supported. Pin setuptools80.9.0
+because newer releases remove pkg_resources required by CTranslate2 4.6.0.
+
+120 unit/media tests,3 native CTest benches, setup/CC2 browser checks and
+UDP/progressive-video checks pass. Native Windows isolated installer payload,
+embedded Python, setup imports, lifecycle repair/uninstall/reinstall, optional
+translation source download/conversion/inference and cached-model reuse pass.
+No physical media/driver/profile/app-route operations were performed for release
+testing. Complete fresh-PC driver/WSL/CUDA walkthroughs remain unverified.
+See verification/windows-release-0.14.0.json and existing caption reports.
+
+Public Setup/App/source exclude FFmpeg, SDK, drivers, model weights, private
+handoff/settings/routes, credentials and local recordings. Installer remains
+unsigned/experimental. Current CC2 backlog policy is unchanged. GitHub release
+uses the same prerelease status as the preceding tester build. Workstation
+validation paths and publication details belong in private handoff.
+
+# November 3, 2026 — Optional per-output Spanish CC2
+
+User requested optional on-air Spanish CC2 after the Dashboard trial. Added
+spanish_cc2=false per output, shown for audioWhisper replacement. Requires en
+recognition and 608/both; 708-only and Pass/Strip disable the option. Selected
+outputs read a route-scoped combined phrase journal; other outputs keep the
+original CC1 journal. Spanish basic/special/extended 608 glyphs include accents,
+ñ, ¿ and ¡. Native 708 Service1 tracks channel selection and ignores CC2.
+No Spanish native Service2 is generated. Rebuild engine for the bilingual marker;
+preflight checks model/runtime and engine. Manual preview text stays off air.
+
+Bilingual journal serializes whole phrases and bounds backlog at4 seconds for
+Spanish and10 for English, estimating25 pairs/s conservatively. Skips/backlog are
+reported. Initial/silence erase both channels; closed route sinks reject late
+translations. Translator preloads before capture. No A/V delay or source changes.
+
+116 unit/media tests pass. New CC2 browser persistence/format/locking checks and
+existing 708/manual-SCTE browser regressions pass. Eight actual H264/MPEG2 outputs
+independently decode CC1/CC2, Spanish glyphs and isolated English Service1, with
+300 frames each. Existing six native708 media regressions pass. Remote synthetic
+speech → Whisper → OPUS → actual locally built engine passed,3 translations,
+0 skips; independent decoding verified selected/unselected/stripped outputs,
+539 frames each. Physical CC2 reception and sustained program throughput remain
+unverified. Workstation install/backups/engine hashes are in private handoff.
+No release/version bump, commit or push. docs/WHISPER.md describes operation.
+
+# November 3, 2026 — OPUS-MT Dashboard preview
+
+Added asynchronous CPU INT8 OPUS-MT English-to-Spanish preview with manual text
+entry and live Whisper transcript submission. Separate optional isolated runtime;
+no translator dependencies in core app. Bounded queue counts skipped phrases;
+recent English/Spanish/latency shown using textContent. No Spanish output encoding
+or CC2 integration. Deployment and model provenance in private workstation handoff.
+108 existing tests plus3 preview tests pass; actual remote browser preview tested.
+Physical live-route translation throughput and Spanish quality remain unverified.
+
+# November 2, 2026 — 0.13.1 background console fix
+
+User reported two blank command windows at route start. FFmpeg and the Whisper
+worker were created as Windows process groups without CREATE_NO_WINDOW when the
+launcher runs via pythonw. Added shared hidden_process_options and kept process
+groups and captured logs. A private stdin quit pipe lets hidden Windows FFmpeg
+stop cleanly; the existing bounded terminate/kill fallback remains. Applied hidden options to
+FFmpeg/Whisper/DeckLink capability probes and launcher queries, too. No media
+engine change or native rebuild is required. Preserve the running route; install
+and reload the control app only when route and monitor are confirmed idle.
+
+Local translation research is in LOCAL_TRANSLATION.md: OPUS-MT English/Spanish
+baseline and larger pair model with CPU INT8 CTranslate2, MADLAD/M2M alternatives,
+license distinctions, latency/quality evaluation plan and Spanish glyph gap in
+current generated captions. No model/runtime download or translation integration
+was authorized or performed by this research. Deployment details and verification
+belong in private WORKSTATION_HANDOFF.md.
+
+# November 2, 2026 — 0.13.0 native 708 output
+
+User requested native 708 generation, per-output 608 / 708 / 608 + 708 choices,
+and a new version on the remote Windows workstation. Added Service 1 two-row
+roll-up encoding from the paced generated CC1 journal, DTVCC packet sequencing,
+per-line window refresh and SDI CDP service announcements. Output pass mode can
+select existing types; no input conversion or native 708 monitor work was added.
+Legacy generated routes default to 608; source pass defaults to both. Manual
+SCTE and SRT mode controls from the earlier work below are included in 0.13.0.
+
+105 unit/media tests pass. New format/browser persistence and old-engine gate
+checks pass. Independent CCExtractor decodes native 708 text from H.264 and
+MPEG-2 outputs; 608/708-only exclusions and combined payloads are verified,
+with all 240 frames retained in each of six encoded outputs. Native Windows
+tests on the workstation pass 24 format/rate cases through filter → V210 →
+CDP/VANC, service-info parsing, partial journal appends and source isolation.
+See `verification/native-708-0.13.0.json` and `WHISPER.md` for limits. The user subsequently confirmed the new output worked on their Leader monitor.
+Treat this as user-reported physical reception; the selected format, video rate
+and individual-service checks were not specified. Installer/source/app
+packages exclude locally built FFmpeg, SDK, drivers and private state. Workstation
+installation details and backups belong in private `WORKSTATION_HANDOFF.md`.
+
+The new engine is compiled in the workstation's existing WSL cache and copied
+to a new filename. Prior engines and the general engine path are retained;
+only the selected DeckLink/extended engine path needs changing for new formats.
+Do not start or stop other captioning applications, or open an SDI device as
+part of deployment verification. Existing routes/settings must be preserved.
+
+# November 2, 2026 — manual SCTE and SRT controls (local development)
+
+Implemented per-output Manual SCTE policy with live Start/End and duration.
+DeckLink emits SCTE-104; UDP/SRT/TS files emit SCTE-35. User explicitly excluded
+RTMP and YouTube. Duration is signaled with auto_return=false; End is explicit.
+Updated local Windows build support and package inputs; old engines fail preflight
+for manual mode. Added input/output Caller/Listener/Rendezvous controls preserving
+existing SRT URL options. See `SDI_SCTE.md` for behavior and verification.
+
+101 unit/media tests pass; new and existing playout browser checks pass. Local
+Windows engine cross-build succeeded. Live Wine TS test verified two exact cues,
+valid CRC/PMT/PID and isolation across three outputs with full frame retention.
+SCTE-35 ↔ 104 codec round trips pass; physical SDI receiver test remains pending.
+No workstation connection, installation, remote process start/stop, driver/profile
+change, publication or release version bump in this work. User's separate remote
+DeckLink captioning job must remain untouched (user says it finishes at 4 PM;
+this is not permission to stop it). Changes remain in the local working tree.
+Installing the app update and rebuilding its selected local engine are still
+required before these controls can be used on the workstation.
+
 # Project handoff — October 29, 2026
 
 ## 0.12.1 — YouTube upload backpressure diagnosis

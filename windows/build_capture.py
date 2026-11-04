@@ -38,6 +38,12 @@ def verify_capture(binary):
         raise ValueError('Whisper filter/raw audio tap is missing; configuration was not changed.')
     if 'continuous field-slotted' not in query('-h','filter=spankvanc_cc'):
         raise ValueError('Corrected caption framing is missing; rebuild the engine with current support.')
+    if 'Native CEA-708 Service 1' not in query('-h','filter=spankvanc_cc') or 'spankvanc_caption_format' not in playout:
+        raise ValueError('Native 708 caption output is missing; rebuild the engine with current support.')
+    if 'Bilingual CC1/CC2 journal' not in query('-h','filter=spankvanc_cc'):
+        raise ValueError('Spanish CC2 support is missing; rebuild the engine with current support.')
+    if 'spankvanc_manual_scte' not in playout or 'spankvanc_manual_scte' not in query('-h','muxer=mpegts'):
+        raise ValueError('Manual SCTE output is missing; rebuild the engine with current support.')
     print(version.splitlines()[0])
 
 def main(argv=None):

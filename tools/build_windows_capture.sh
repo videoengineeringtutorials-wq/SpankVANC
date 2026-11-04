@@ -24,6 +24,8 @@ python3 "$project_dir/tools/patch_ffmpeg_monitor_scte.py" "$source_dir"
 python3 "$project_dir/tools/patch_ffmpeg_playout.py" "$source_dir"
 python3 "$project_dir/tools/patch_ffmpeg_scte_output.py" "$source_dir"
 python3 "$project_dir/tools/patch_ffmpeg_whisper.py" "$source_dir"
+python3 "$project_dir/tools/patch_ffmpeg_manual_scte.py" "$source_dir"
+python3 "$project_dir/tools/patch_ffmpeg_708.py" "$source_dir"
 cd "$source_dir"
 ./configure --prefix="$build_dir/capture" --cross-prefix=x86_64-w64-mingw32- \
  --arch=x86_64 --target-os=mingw32 --enable-cross-compile --stdcxx=c++17 \

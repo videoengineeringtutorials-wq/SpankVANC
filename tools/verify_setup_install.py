@@ -16,7 +16,7 @@ def main():
         assert hashlib.sha256((root/name).read_bytes()).hexdigest()==expected,name
     assert (root/'Uninstall.exe').is_file()
     binary=root/'python/python.exe'
-    code="import sys;sys.path.insert(0,sys.argv[1]);import spankvanc;assert spankvanc.__version__==sys.argv[2]"
+    code="import sys;sys.path.insert(0,sys.argv[1]);import spankvanc;from spankvanc.bilingual import BilingualJournal;from spankvanc.translation import TranslationPreview;assert spankvanc.__version__==sys.argv[2]"
     subprocess.run([str(binary),'-I','-c',code,str(root/'app'),manifest['app_version']],check=True)
     spec=importlib.util.spec_from_file_location('installed_setup',root/'setup/setup.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
@@ -24,6 +24,9 @@ def main():
         wizard=module.Setup(root,Path(folder)/'state')
         assert not wizard.state()['running'] and not wizard.state()['ready']
         assert wizard.deps['python']['url'].startswith('https://www.python.org/')
+        assert (root/'setup/translation_setup.py').is_file()
+        assert wizard.deps['translation']['model']=='Helsinki-NLP/opus-mt-en-es'
+        assert len(wizard.deps['translation']['source_files']['pytorch_model.bin'])==64
         assert not (root/'license.json').exists()
     print('Native installer payload, embedded runtime and wizard imports: PASS')
 

@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from .process_utils import hidden_process_options
 import sys
 import time
 
@@ -14,7 +15,7 @@ def python_path():return os.environ.get('SPANKVANC_WHISPER_PYTHON',sys.executabl
 
 def probe():
     try:
-        r=subprocess.run([python_path(),str(WORKER),'--probe'],capture_output=True,text=True,timeout=45)
+        r=subprocess.run([python_path(),str(WORKER),'--probe'],capture_output=True,text=True,timeout=45, **hidden_process_options())
         if r.returncode:return {'available':False,'error':'Whisper worker dependencies unavailable in configured Python'}
         return json.loads(r.stdout.strip().splitlines()[-1])
     except (OSError,ValueError,subprocess.TimeoutExpired):

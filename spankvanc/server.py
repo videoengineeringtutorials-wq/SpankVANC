@@ -14,7 +14,7 @@ WEB = Path(__file__).parent / "web"
 
 def make_handler(engine, token, port):
     class Handler(BaseHTTPRequestHandler):
-        server_version = "SpankVANC/0.12.1"
+        server_version = "SpankVANC/0.14.0"
 
         def authorized_host(self):
             return self.headers.get("Host") in (f"127.0.0.1:{port}", f"localhost:{port}")
@@ -64,6 +64,8 @@ def make_handler(engine, token, port):
                     result = engine.monitor_start(data)
                 elif self.path == "/api/monitor/stop":
                     result = engine.monitor_stop()
+                elif self.path == "/api/translation":
+                    result = engine.translation.submit(data.get("text"))
                 elif self.path == "/api/devices":
                     result = engine.refresh_devices()
                 elif self.path == "/api/plan":
@@ -73,6 +75,8 @@ def make_handler(engine, token, port):
                     result = engine.state()
                 elif self.path == "/api/start":
                     result = engine.start(data)
+                elif self.path == "/api/scte/inject":
+                    result = engine.inject_scte(data)
                 elif self.path == "/api/stop":
                     result = engine.stop()
                 else:

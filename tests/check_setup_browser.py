@@ -12,8 +12,9 @@ with tempfile.TemporaryDirectory() as folder:
     (include/'DeckLinkAPIVersion.h').write_text('#define BLACKMAGIC_DECKLINK_API_VERSION 0x0c080000\n')
     (include/'DeckLinkAPI.idl').touch()
     def pick():wizard.sdk='SDK/Win/include';wizard.remember(sdk=wizard.sdk)
-    def install(device):
+    def install(device, translation=False):
         assert device=='cpu'
+        assert translation is True
         wizard.step='Setup complete';wizard.ready=True
         wizard.log('Your app is ready.')
     wizard.pick_sdk=pick;wizard.run=install
@@ -38,6 +39,8 @@ with tempfile.TemporaryDirectory() as folder:
             expect(page.locator('#install')).to_be_disabled()
             page.locator('#consent').check()
             expect(page.locator('#install')).to_be_enabled()
+            expect(page.locator('#translation')).not_to_be_checked()
+            page.locator('#translation').check()
             page.locator('#install').click()
             expect(page.locator('#step')).to_have_text('Setup complete')
             expect(page.locator('#launch')).to_be_visible()
@@ -47,4 +50,4 @@ with tempfile.TemporaryDirectory() as folder:
             browser.close()
     finally:
         server.shutdown();server.server_close();thread.join()
-print('First-time setup, SDK selection, consent and ready state: PASS')
+print('First-time setup, SDK selection, consent, optional Spanish selection and ready state: PASS')

@@ -74,7 +74,7 @@ edit('libavdevice/decklink_enc_c.c','"spankvanc_scte_output"', '    { "spankvanc
     { "spankvanc_scte_output_strict", "Stop on rejected SCTE-35 cue", OFFSET(spankvanc_scte_output_strict), AV_OPT_TYPE_BOOL, { .i64 = 0 }, 0, 1, ENC },
     { "spankvanc_caption_output",''')
 edit('libavdevice/decklink_enc.cpp','"spankvanc_scte35_to104.hpp"', '/* DeckLink callback class declaration */', '#include "spankvanc_scte35_to104.hpp"\n\n/* DeckLink callback class declaration */')
-edit('libavdevice/decklink_enc.cpp','->spankvanc_scte_output) {', ')->spankvanc_caption_output) {', ')->spankvanc_caption_output || ((struct decklink_cctx *)avctx->priv_data)->spankvanc_scte_output) {')
+edit('libavdevice/decklink_enc.cpp',')->spankvanc_scte_output', ')->spankvanc_caption_output) {', ')->spankvanc_caption_output || ((struct decklink_cctx *)avctx->priv_data)->spankvanc_scte_output) {')
 edit('libavdevice/decklink_enc.cpp','// SpankVANC converter lifecycle', '    cctx->ctx = ctx;', '''    cctx->ctx = ctx;
     // SpankVANC converter lifecycle
     if (cctx->spankvanc_scte_output == 2) ctx->spank_to104 = new spankvanc::Scte35To104;

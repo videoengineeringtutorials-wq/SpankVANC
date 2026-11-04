@@ -1,6 +1,6 @@
-# Guided Windows setup (0.12.1)
+# Guided Windows setup (0.14.0)
 
-For public testers, download **SpankVANC-0.12.1-Windows11-x64-Setup.exe** from
+For public testers, download **SpankVANC-0.14.0-Windows11-x64-Setup.exe** from
 [Releases](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases).
 This is one entry point for installation, downloads and the local engine build.
 It is an **online installer**, not an offline bundle of every dependency.
@@ -89,7 +89,7 @@ files, close the app and idle wizard, then run the current Setup EXE into the
 recognized installation folder. Setup will not mark failed steps successful or
 replace saved engine paths with an unverified build.
 
-Version 0.12.1 includes the earlier installation recovery fixes: managed speech
+Version 0.14.0 includes the earlier installation recovery fixes: managed speech
 installation bypasses the shared pip wheel cache; source downloads retry
 connection failures with an IPv4 fallback and pinned checksum verification;
 and relaunching Finish SpankVANC Setup reconnects to the live wizard across
@@ -115,3 +115,18 @@ checksums plus a public `.exe.json` payload-origin report. Native CI installs
 into a fresh temporary folder using `/S /NOINTEGRATION` and runs
 `tools/verify_setup_install.py`; no drivers, WSL changes, media or activation are
 started by that smoke test. The regular setup flow is interactive, not silent.
+
+## Optional Spanish CC2 in 0.14.0
+
+Select **Install local English → Spanish translation** in guided setup to
+prepare the Dashboard preview and optional per-output CC2. Setup downloads
+verified pinned OPUS-MT source weights and converts them to CPU INT8 locally.
+A separate translation Python/runtime is placed under the app's `translation/`
+folder; converter packages use an isolated target directory beside setup's
+speech cache. Existing Whisper packages are not changed by translation setup.
+Allow additional download time. Leave the checkbox off if you only need English.
+After setup, enable **Add Spanish translation on CC2** on each desired output;
+608 or 608 + 708 and Whisper language en are required. See [caption behavior and
+backlog limits](WHISPER.md). Spanish phrases may be skipped under overload.
+The installer is unsigned. The translation download/conversion step is tested
+separately from a complete fresh Windows/driver/WSL setup.

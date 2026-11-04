@@ -43,6 +43,7 @@ for path in sorted((ROOT/'spankvanc').rglob('*')):
         files['app/'+path.relative_to(ROOT).as_posix()]=path.read_bytes()
 files['setup/maintenance.py']=(ROOT/'windows/maintenance.py').read_bytes()
 files['setup/setup.py']=(ROOT/'windows/setup.py').read_bytes()
+files['setup/translation_setup.py']=(ROOT/'windows/translation_setup.py').read_bytes()
 files['setup/dependencies.json']=(ROOT/'windows/setup_dependencies.json').read_bytes()
 for path in sorted((ROOT/'windows/setup_web').glob('*')):
     if path.is_file():files['setup/web/'+path.name]=path.read_bytes()
@@ -52,10 +53,13 @@ for name in ('Start SpankVANC.cmd','Configure FFmpeg.cmd','Diagnostics.cmd','Bui
     data=(ROOT/'windows'/name).read_bytes()
     if name.endswith('.cmd'):assert b'\r\n' in data and b'python.exe' in data
     files[name]=data
-for name in ('bootstrap_windows_capture.py','build_windows_capture.sh','patch_ffmpeg_decklink.py','patch_ffmpeg_monitor_scte.py','patch_ffmpeg_playout.py','patch_ffmpeg_scte_output.py','patch_ffmpeg_whisper.py'):
+for name in ('bootstrap_windows_capture.py','build_windows_capture.sh','patch_ffmpeg_decklink.py','patch_ffmpeg_monitor_scte.py','patch_ffmpeg_playout.py','patch_ffmpeg_scte_output.py','patch_ffmpeg_whisper.py','patch_ffmpeg_manual_scte.py','patch_ffmpeg_708.py'):
     files['build-support/tools/'+name]=(ROOT/'tools'/name).read_bytes()
+files['build-support/native/cea708_encoder.h']=(ROOT/'native/cea708_encoder.h').read_bytes()
+files['build-support/native/caption_services.h']=(ROOT/'native/caption_services.h').read_bytes()
 files['build-support/native/vf_spankvanc_cc.c']=(ROOT/'native/vf_spankvanc_cc.c').read_bytes()
 files['build-support/native/scte104.hpp']=(ROOT/'native/scte104.hpp').read_bytes()
+files['build-support/native/manual_scte.h']=(ROOT/'native/manual_scte.h').read_bytes()
 files['build-support/native/scte35_to104.hpp']=(ROOT/'native/scte35_to104.hpp').read_bytes()
 files['build-support/native/scte_vanc.hpp']=(ROOT/'native/scte_vanc.hpp').read_bytes()
 files['build-support/windows/mingw-toolchain.cmake']=(ROOT/'windows/mingw-toolchain.cmake').read_bytes()

@@ -43,7 +43,7 @@ class RouteTests(unittest.TestCase):
                 pairs.append((ts, other, {"pass", "strip"}))
         for source, destination, allowed in pairs:
             with self.subTest(source=source, destination=destination):
-                self.assertEqual(set(scte_options(source, destination)), allowed)
+                self.assertEqual(set(scte_options(source, destination)), allowed | {"manual"})
                 for policy in ("pass", "strip", "convert"):
                     cfg = route()
                     cfg["input"].update(kind=source, address="")
@@ -56,7 +56,7 @@ class RouteTests(unittest.TestCase):
         self.assertEqual(scte_options("decklink", "udp")["convert"], "Convert 104 → 35")
         self.assertEqual(scte_options("srt", "decklink")["convert"], "Convert 35 → 104")
         for source, destination in (("rtmp", "decklink"), ("udp", "rtmp"), ("decklink", "youtube")):
-            self.assertEqual(set(scte_options(source, destination)), {"strip"})
+            self.assertEqual(set(scte_options(source, destination)), {"strip", "manual"} if destination == "decklink" else {"strip"})
 
     def test_video_codec_validation_and_capabilities(self):
         for kind in ("udp", "srt", "file"):

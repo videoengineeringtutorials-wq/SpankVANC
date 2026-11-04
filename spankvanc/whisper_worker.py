@@ -123,6 +123,7 @@ def main():
                     print('Whisper CC1: '+text,flush=True)
             elif initialized and not cleared and now-last_text>8:
                 journal.write(bytes((odd(0x14),odd(0x2c)))*2);cleared=True
+                print('Whisper clear',flush=True)
             if journal.tell()>64*1024*1024:raise RuntimeError('Caption journal reached route limit; restart route')
 
 

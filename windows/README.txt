@@ -1,4 +1,4 @@
-SpankVANC 0.12.1 — Windows 11 x64 app
+SpankVANC 0.14.0 — Windows 11 x64 app
 
 For an easier first install, use the Windows11-x64-Setup.exe release asset.
 It opens the guided setup; see docs\WINDOWS_INSTALLER.md. It downloads speech

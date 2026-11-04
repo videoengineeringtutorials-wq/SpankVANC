@@ -1,0 +1,50 @@
+{
+  "version": "0.14.0",
+  "unit_media_tests": 120,
+  "native_ctest_tests": 3,
+  "browser_checks": [
+    "setup consent/SDK/optional Spanish selection",
+    "CC2 per-output persistence/format/locking"
+  ],
+  "media_checks": [
+    "UDP packet continuity and MTU",
+    "progressive 1080p30 output",
+    "prior independent H.264/MPEG-2 CC1/CC2/708 isolation"
+  ],
+  "native_windows": {
+    "installer_payload_hashes": true,
+    "embedded_python_imports": true,
+    "idle_wizard_uninstall": true,
+    "same_folder_reinstall_repair": true,
+    "settings_and_engine_preservation": true,
+    "optional_translation_download_and_source_hashes": true,
+    "optional_translation_conversion_and_inference": true,
+    "cached_model_reuse": true,
+    "fresh_pc_driver_wsl_cuda_walkthrough": false,
+    "physical_media_started": false
+  },
+  "translation": {
+    "model": "Helsinki-NLP/opus-mt-en-es",
+    "revision": "5bc4493d463cf000c1f0b50f8d56886a392ed4ab",
+    "source_files_verified": 8,
+    "runtime_python": "3.13.12",
+    "ctranslate2": "4.6.0",
+    "sentencepiece": "0.2.1",
+    "numpy": "2.4.6",
+    "setuptools": "80.9.0",
+    "device": "CPU INT8"
+  },
+  "distribution": {
+    "installer_signed": false,
+    "ffmpeg_bundled": false,
+    "sdk_bundled": false,
+    "drivers_bundled": false,
+    "translation_weights_bundled": false,
+    "requires_internet_for_setup": true
+  },
+  "limits": [
+    "Current CC2 phrase dropping policy unchanged",
+    "Physical Spanish CC2 receiver acceptance not systematically verified",
+    "Sustained bilingual throughput and translation quality require review"
+  ]
+}

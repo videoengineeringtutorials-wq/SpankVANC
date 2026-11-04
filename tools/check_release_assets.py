@@ -40,6 +40,9 @@ def check(path):
      assert prefix+required in names,'Missing guided setup: '+required
    if tuple(map(int,manifest['app_version'].split('.'))) >= (0,11,1):
     assert prefix+'setup/maintenance.py' in names,'Missing repair/uninstall preflight'
+   if tuple(map(int,manifest['app_version'].split('.'))) >= (0,14,0):
+    for required in ('setup/translation_setup.py','app/spankvanc/translation.py','app/spankvanc/translation_worker.py','app/spankvanc/bilingual.py','build-support/native/cea708_encoder.h','build-support/native/caption_services.h','build-support/tools/patch_ffmpeg_708.py','build-support/tools/patch_ffmpeg_manual_scte.py'):
+     assert prefix+required in names,'Missing translation installation/runtime: '+required
    for name,digest in manifest['files'].items():
     assert hashlib.sha256(archive.read(prefix+name)).hexdigest()==digest,'Manifest mismatch: '+name
   else:

@@ -15,6 +15,8 @@ import time
 import urllib.request
 import webbrowser
 
+from spankvanc.process_utils import hidden_process_options
+
 ROOT=Path(__file__).resolve().parent.parent
 SETTINGS=ROOT/'settings.json'
 
@@ -39,7 +41,7 @@ def configure(settings,root=ROOT):
     value=input('FFmpeg path: ').strip().strip('"')
     binary=Path(os.path.expandvars(value)).expanduser()
     if not binary.is_file():raise ValueError('That file was not found. Run Configure FFmpeg.cmd to try again.')
-    p=subprocess.run([str(binary),'-hide_banner','-version'],capture_output=True,text=True,errors='replace',timeout=20)
+    p=subprocess.run([str(binary),'-hide_banner','-version'],capture_output=True,text=True,errors='replace',timeout=20, **hidden_process_options())
     if p.returncode:raise ValueError('FFmpeg could not run. Keep its required DLL files alongside it.')
     settings=dict(settings,ffmpeg_path=str(binary.resolve()))
     (root/'settings.json').write_text(json.dumps(settings,indent=2)+'\n',encoding='utf-8')
@@ -72,7 +74,7 @@ def diagnostics(root=ROOT):
                        ('DeckLink inputs',['-f','decklink','-list_devices','1','-i','dummy'])]:
         try:
             p=subprocess.run([executable(True),'-hide_banner','-nostdin',*args],capture_output=True,
-                             text=True,errors='replace',timeout=20)
+                             text=True,errors='replace',timeout=20, **hidden_process_options())
             logs.append(label+'\n'+scrub(p.stdout+p.stderr))
         except (OSError,subprocess.TimeoutExpired) as exc:logs.append(label+'\n'+str(exc))
     path.with_suffix('.txt').write_text('\n\n'.join(logs),encoding='utf-8')

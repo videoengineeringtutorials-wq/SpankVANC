@@ -18,5 +18,35 @@
     "url": "https://download.visualstudio.microsoft.com/download/pr/990c720a-46ce-4dc7-87b9-c2eb615d34b9/CC0FF0EB1DC3F5188AE6300FAEF32BF5BEEBA4BDD6E8E445A9184072096B713B/VC_redist.x64.exe",
     "sha256": "cc0ff0eb1dc3f5188ae6300faef32bf5beeba4bdd6e8e445a9184072096b713b",
     "filename": "vc_redist.x64.exe"
+  },
+  "translation": {
+    "model": "Helsinki-NLP/opus-mt-en-es",
+    "revision": "5bc4493d463cf000c1f0b50f8d56886a392ed4ab",
+    "base_url": "https://huggingface.co/Helsinki-NLP/opus-mt-en-es/resolve",
+    "runtime_packages": [
+      "ctranslate2==4.6.0",
+      "sentencepiece==0.2.1",
+      "numpy==2.4.6",
+      "PyYAML==6.0.3",
+      "setuptools==80.9.0"
+    ],
+    "converter_packages": [
+      "ctranslate2==4.6.0",
+      "transformers==4.57.6",
+      "sentencepiece==0.2.1",
+      "sacremoses==0.1.1",
+      "setuptools==80.9.0",
+      "numpy==2.4.6"
+    ],
+    "source_files": {
+      "README.md": "7831f4fa1eda04c91a5aa7b57006db58355c78337a552c5ff0252d0c049710d8",
+      "config.json": "666ad3c2943674b6a789e311d221e44ec23e27f1bd9727930754bf773ec8e464",
+      "generation_config.json": "837839ed0534a27084f9b980fc33f47729052dd89cb26cca7ac830765ed30e49",
+      "pytorch_model.bin": "befce0f620e8e63f83bbb7f0818eb51d541cba28057a7cc14b00466d85c4994c",
+      "source.spm": "4dd547c24816a335e7b0b2e63376a8f1b3cbfc671eda5ab808dd44fdadaa8791",
+      "target.spm": "e236ee6d866b635c0142114f8647f39831f9d92534aa2aad75c942f6a78ad0e3",
+      "tokenizer_config.json": "9859e3f8f73e2f50ab3e5cc2de432645347432956df4772d33209a346dd97f3b",
+      "vocab.json": "257f346d7a6b2ecceafcca8ba05648ce2fd68dfaf105fb0e913dca7198f3f6d5"
+    }
   }
 }

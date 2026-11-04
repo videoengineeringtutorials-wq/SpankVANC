@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+from .process_utils import hidden_process_options
 import sys
 
 
@@ -15,7 +16,7 @@ def discover_attributes():
         return [], ''
     try:
         result = subprocess.run([sys.executable, str(Path(__file__).resolve())],
-                                capture_output=True, text=True, timeout=12)
+                                capture_output=True, text=True, timeout=12, **hidden_process_options())
         if result.returncode:
             return [], result.stderr.strip() or 'Desktop Video attribute query failed'
         devices = json.loads(result.stdout)

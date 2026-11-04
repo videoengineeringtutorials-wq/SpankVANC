@@ -13,6 +13,7 @@ import re
 import shutil
 import signal
 import subprocess
+from .process_utils import hidden_process_options, start_media_process
 import threading
 from collections import deque
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
@@ -30,7 +31,7 @@ YOUTUBE_SERVER = "rtmps://a.rtmps.youtube.com:443/live2"
 
 DEFAULT = {
     "name": "Main program",
-    "input": {"kind": "decklink", "address": "", "realtime": True, "format_code": "", "scte_error_policy": "continue", "scte_pid": None},
+    "input": {"kind": "decklink", "address": "", "realtime": True, "format_code": "", "scte_error_policy": "continue", "scte_pid": None, "srt_mode": ""},
     "outputs": [{"name": "Program TS", "kind": "udp", "address": "udp://127.0.0.1:5000?pkt_size=1316",
                  "captions": "pass", "scte": "convert", "video_codec": "h264", "enabled": True}],
     "whisper": {"model": "small.en", "language": "en", "delay_ms": 0, "audio_channel": 1, "device": "auto"},
@@ -50,7 +51,7 @@ def video_codec_options(destination: str) -> dict[str, str]:
     return {"h264": "H.264 / AVC", "mpeg2video": "MPEG-2 video"}
 
 
-def scte_options(source: str, destination: str) -> dict[str, str]:
+def _source_scte_options(source: str, destination: str) -> dict[str, str]:
     """Carriage is fixed by SDI/TS, not by a user-selectable conversion direction."""
     ts = ("udp", "srt", "file")
     if source == destination == "decklink":
@@ -62,6 +63,28 @@ def scte_options(source: str, destination: str) -> dict[str, str]:
     if source in ts and destination == "decklink":
         return {"convert": "Convert 35 → 104", "strip": "Strip SCTE-35"}
     return {"strip": "No SCTE carriage"}
+
+
+def scte_options(source: str, destination: str) -> dict[str, str]:
+    choices = _source_scte_options(source, destination)
+    if destination in ("decklink", "udp", "srt", "file"):
+        choices["manual"] = "Manual SCTE-104" if destination == "decklink" else "Manual SCTE-35"
+    return choices
+
+
+def srt_address(endpoint: dict) -> str:
+    """Keep existing URL options; explicit UI mode wins over a pasted mode."""
+    address = endpoint["address"]
+    if endpoint["kind"] != "srt":
+        return address
+    parts = urlsplit(address)
+    pairs = parse_qsl(parts.query, keep_blank_values=True)
+    modes = [value for key, value in pairs if key == "mode"]
+    mode = endpoint.get("srt_mode") or (modes[-1] if modes else "caller")
+    if mode not in ("caller", "listener", "rendezvous"):
+        raise ConfigError("SRT mode must be caller, listener or rendezvous")
+    endpoint["srt_mode"] = mode
+    return urlunsplit(parts._replace(query=urlencode([(k,v) for k,v in pairs if k != "mode"] + [("mode",mode)])))
 
 
 def scte_matrix() -> dict:
@@ -112,7 +135,7 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
     names = set()
     for out in cfg["outputs"]:
         required = {"name", "kind", "address", "captions", "scte", "enabled"}
-        if not isinstance(out, dict) or not required <= set(out) or set(out) - required - {"video_codec", "youtube_server", "youtube_stream_key", "youtube_bitrate_mbps"}:
+        if not isinstance(out, dict) or not required <= set(out) or set(out) - required - {"video_codec", "youtube_server", "youtube_stream_key", "youtube_bitrate_mbps", "srt_mode", "caption_format", "spanish_cc2"}:
             raise ConfigError("Each output needs name, kind, address, captions, scte, enabled")
         if not isinstance(out["name"], str) or not 1 <= len(out["name"]) <= 100 or out["name"] in names:
             raise ConfigError("Output names must be nonempty and unique")
@@ -163,8 +186,16 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
             out["address"] = urlunsplit(parsed._replace(query=urlencode(query)))
         if out["captions"] not in ("pass", "strip", "recaption"):
             raise ConfigError("Caption policy must be pass, strip or recaption")
-        if out["scte"] not in ("pass", "strip", "convert"):
-            raise ConfigError("SCTE policy must be pass, strip or convert")
+        out.setdefault("caption_format", "608" if out["captions"] == "recaption" else "both")
+        out.setdefault("spanish_cc2", False)
+        if type(out["spanish_cc2"]) is not bool:
+            raise ConfigError("Spanish CC2 must be true or false")
+        if out["spanish_cc2"] and (out["captions"] != "recaption" or out["caption_format"] == "708"):
+            raise ConfigError("Spanish CC2 requires audioWhisper replacement and 608 or 608 + 708 output")
+        if out["caption_format"] not in ("608", "708", "both"):
+            raise ConfigError("Caption format must be 608, 708 or both")
+        if out["scte"] not in ("pass", "strip", "convert", "manual"):
+            raise ConfigError("SCTE policy must be pass, strip, convert or manual")
         allowed = scte_options(src["kind"], out["kind"])
         if check_scte and out["scte"] not in allowed:
             raise ConfigError(f"{out['name']}: {src['kind']} → {out['kind']} allows only "
@@ -180,6 +211,8 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
     integer(whisper["audio_channel"], 1, 2, "Whisper audio channel")
     if whisper["device"] not in ("auto", "cpu", "cuda"):
         raise ConfigError("Whisper device must be auto, cpu or cuda")
+    if any(o["enabled"] and o["spanish_cc2"] for o in cfg["outputs"]) and whisper["language"] != "en":
+        raise ConfigError("English-to-Spanish CC2 requires Whisper language en")
     gpo = cfg["gpo"]
     if type(gpo["enabled"]) is not bool or not isinstance(gpo["port"], str):
         raise ConfigError("Invalid GPO settings")
@@ -187,6 +220,9 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
         raise ConfigError("Firmware currently uses 115200 baud")
     integer(gpo["channel"], 1, 4, "GPO channel")
     integer(gpo["pulse_ms"], 10, 10000, "GPO pulse")
+    for route_endpoint in [src, *cfg["outputs"]]:
+        if route_endpoint["kind"] == "srt" and route_endpoint["address"]:
+            route_endpoint["address"] = srt_address(route_endpoint)
     return cfg
 
 
@@ -244,7 +280,7 @@ def decklink_devices() -> tuple[list, str]:
     if not Path(diagnostic).is_file():
         return [], "Build the native DeckLink diagnostic to enumerate devices and modes"
     try:
-        result = subprocess.run([diagnostic, "--list"], capture_output=True, text=True, timeout=12)
+        result = subprocess.run([diagnostic, "--list"], capture_output=True, text=True, timeout=12, **hidden_process_options())
         if result.returncode:
             return [], scrub(result.stderr.strip())
         devices = [json.loads(line) for line in result.stdout.splitlines() if line.strip()]
@@ -262,7 +298,7 @@ def doctor() -> dict:
     if not result["ffmpeg"]:
         return result
     def query(*args):
-        p = subprocess.run([binary, "-hide_banner", *args], capture_output=True, text=True, timeout=12)
+        p = subprocess.run([binary, "-hide_banner", *args], capture_output=True, text=True, timeout=12, **hidden_process_options())
         return p.stdout + p.stderr
     devices = query("-devices")
     for line in devices.splitlines():
@@ -285,7 +321,7 @@ def doctor() -> dict:
     result["decklink_ffmpeg"] = shutil.which(deck_binary)
     if result["decklink_ffmpeg"]:
         try:
-            probe = subprocess.run([deck_binary, "-hide_banner", "-devices"], capture_output=True, text=True, timeout=12)
+            probe = subprocess.run([deck_binary, "-hide_banner", "-devices"], capture_output=True, text=True, timeout=12, **hidden_process_options())
             result["decklink_output"] = any("decklink" in line and "E" in line.split()[0]
                 for line in (probe.stdout + probe.stderr).splitlines() if line.split())
             result["decklink_input"] = any("decklink" in line and "D" in line.split()[0]
@@ -294,16 +330,23 @@ def doctor() -> dict:
             result["decklink_input"] = False
     if result.get("decklink_output"):
         try:
-            probe = subprocess.run([deck_binary, "-hide_banner", "-h", "muxer=decklink"], capture_output=True, text=True, timeout=12)
+            probe = subprocess.run([deck_binary, "-hide_banner", "-h", "muxer=decklink"], capture_output=True, text=True, timeout=12, **hidden_process_options())
             result["decklink_caption_output"] = "spankvanc_caption_output" in probe.stdout + probe.stderr
+            result["manual_scte104"] = "spankvanc_manual_scte" in probe.stdout + probe.stderr
             result["decklink_scte_output"] = "spankvanc_scte_output" in probe.stdout + probe.stderr
             from .ffmpeg_compat import discover_outputs
             result["decklink_outputs"], result["decklink_output_error"] = discover_outputs(deck_binary)
         except (OSError, subprocess.TimeoutExpired):
             pass
+    if result.get("decklink_ffmpeg"):
+        try:
+            probe = subprocess.run([deck_binary, "-hide_banner", "-h", "muxer=mpegts"], capture_output=True, text=True, timeout=12, **hidden_process_options())
+            result["manual_scte35"] = "spankvanc_manual_scte" in probe.stdout + probe.stderr
+        except (OSError, subprocess.TimeoutExpired):
+            pass
     if result.get("decklink_input"):
         try:
-            probe = subprocess.run([deck_binary, "-hide_banner", "-h", "demuxer=decklink"], capture_output=True, text=True, timeout=12)
+            probe = subprocess.run([deck_binary, "-hide_banner", "-h", "demuxer=decklink"], capture_output=True, text=True, timeout=12, **hidden_process_options())
             options = probe.stdout + probe.stderr
             result["decklink_options"] = option_names(options)
             result["source_monitor"] = "spankvanc_anc" in options
@@ -325,12 +368,12 @@ def doctor() -> dict:
             result["caption_encoders"] = {}
             for codec,encoder in (("h264","libx264"),("mpeg2video","mpeg2video")):
                 try:
-                    p = subprocess.run([deck_binary,"-hide_banner","-h","encoder="+encoder],capture_output=True,text=True,errors="replace",timeout=12)
+                    p = subprocess.run([deck_binary,"-hide_banner","-h","encoder="+encoder],capture_output=True,text=True,errors="replace",timeout=12, **hidden_process_options())
                     result["caption_encoders"][codec] = "a53cc" in option_names(p.stdout+p.stderr)
                 except (OSError,subprocess.TimeoutExpired):
                     result["caption_encoders"][codec] = False
             try:
-                p = subprocess.run([deck_binary,"-hide_banner","-h","filter=sidedata"],capture_output=True,text=True,errors="replace",timeout=12)
+                p = subprocess.run([deck_binary,"-hide_banner","-h","filter=sidedata"],capture_output=True,text=True,errors="replace",timeout=12, **hidden_process_options())
                 result["caption_strip_filter"] = "A53_CC" in p.stdout+p.stderr
             except (OSError,subprocess.TimeoutExpired):
                 result["caption_strip_filter"] = False
@@ -338,10 +381,12 @@ def doctor() -> dict:
     result["whisper"] = whisper_probe()
     for label, selected in (("general",binary),("decklink",deck_binary)):
         try:
-            p=subprocess.run([selected,"-hide_banner","-h","filter=spankvanc_cc"],capture_output=True,text=True,timeout=12)
+            p=subprocess.run([selected,"-hide_banner","-h","filter=spankvanc_cc"],capture_output=True,text=True,timeout=12, **hidden_process_options())
+            result["bilingual_"+label] = "Bilingual CC1/CC2 journal" in p.stdout+p.stderr
+            result["caption_formats_"+label] = all(marker in p.stdout+p.stderr for marker in ("Native CEA-708 Service 1", "without generating or converting"))
             result["recaption_"+label] = "UTF-8 journal" in p.stdout+p.stderr and "continuous field-slotted" in p.stdout+p.stderr
             if result["recaption_"+label]:
-                mux=subprocess.run([selected,"-hide_banner","-muxers"],capture_output=True,text=True,timeout=12)
+                mux=subprocess.run([selected,"-hide_banner","-muxers"],capture_output=True,text=True,timeout=12, **hidden_process_options())
                 result["recaption_"+label] = bool(re.search(r"\bf32le\b",mux.stdout+mux.stderr))
         except (OSError,subprocess.TimeoutExpired):
             result["recaption_"+label] = False
@@ -350,7 +395,7 @@ def doctor() -> dict:
     for label, selected in (("general", binary), ("decklink", deck_binary)):
         try:
             def selected_query(*args):
-                p = subprocess.run([selected, "-hide_banner", *args], capture_output=True, text=True, errors="replace", timeout=12)
+                p = subprocess.run([selected, "-hide_banner", *args], capture_output=True, text=True, errors="replace", timeout=12, **hidden_process_options())
                 return p.stdout + p.stderr
             filters = {parts[1] for line in selected_query("-filters").splitlines() if len(parts := line.split()) >= 2}
             result["youtube_profiles"][label] = YOUTUBE_FILTERS <= filters and "rtmps" in selected_query("-protocols").split()
@@ -438,7 +483,11 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
             blockers.append(f"{label}: FFmpeg needs SRT support")
         if kind in ("rtmp", "youtube") and not cap.get("rtmp"):
             blockers.append(f"{label}: FFmpeg needs RTMP support")
-        if out["scte"] != "strip":
+        if out["scte"] == "manual":
+            feature = "manual_scte104" if kind == "decklink" else "manual_scte35"
+            if not cap.get(feature):
+                blockers.append(f"{label}: manual SCTE requires rebuilding the local engine with manual cue support")
+        elif out["scte"] != "strip":
             if kind in ("rtmp", "youtube"):
                 blockers.append(f"{label}: this RTMP profile has no SCTE carriage; select Strip")
             elif kind == "decklink":
@@ -455,6 +504,16 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
                 blockers.append(f"{label}: this FFmpeg lacks the A/53 caption stripping filter")
         if src["kind"] == "decklink" and out["scte"] == "convert" and src["scte_error_policy"] == "continue" and cap.get("scte_runtime") and not cap.get("scte_recovery"):
             blockers.append(f"{label}: capture FFmpeg needs the cue-recovery update for Continue A/V; choose Stop on rejected cue with an older build")
+        needs_formats = ((out["captions"] == "recaption" and out["caption_format"] != "608") or
+                         (out["captions"] == "pass" and out["caption_format"] != "both"))
+        if needs_formats and not cap.get("caption_formats_decklink"):
+            blockers.append(f"{label}: 608/708 selection needs the native 708 output engine update")
+        if out.get("spanish_cc2"):
+            if not cap.get("translation_available"):
+                blockers.append(f"{label}: install the OPUS-MT translation model and isolated runtime")
+            if not cap.get("bilingual_decklink"):
+                blockers.append(f"{label}: Spanish CC2 requires the bilingual caption engine update")
+            notes.append(f"{label}: English CC1 and Spanish CC2 share 608 bandwidth. Translation adds latency; overloaded Spanish phrases are skipped. Native 708 Service 1 stays English.")
         if out["captions"] == "recaption":
             w=cap.get("whisper",{})
             if not w.get("available"):
@@ -467,13 +526,13 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
                 blockers.append(f"{label}: model unavailable in installed Whisper; choose a supported model")
             if src["kind"]=="file" and not src["realtime"]:
                 blockers.append(f"{label}: live Whisper requires reading files at program speed")
-            notes.append(f"{label}: live CC1 two-row roll-up from routed audio channel {cfg['whisper']['audio_channel']}. Recognition and 608 transmission add latency; A/V is not delayed. Source captions are replaced only on this output.")
+            notes.append(f"{label}: live {out['caption_format']} two-row roll-up from routed audio channel {cfg['whisper']['audio_channel']}. Recognition and 608 transmission add latency; A/V is not delayed. Source captions are replaced only on this output.")
         video_label = video_codec_options(kind)[codec]
         outputs.append({"name": label, "transport": kind, "video_codec": codec,
                         "audio_codec": "pcm" if kind == "decklink" else "aac",
                         "audio_framing": "ADTS" if kind in ("udp", "srt", "file") else None,
                         "container": "SDI / uncompressed / PCM / ANC" if kind == "decklink" else "FLV / H.264 / AAC-LC" if kind in ("rtmp", "youtube") else f"MPEG-TS / {video_label} / AAC-LC (ADTS)",
-                        "captions": out["captions"], "scte": out["scte"],
+                        "captions": out["captions"], "caption_format": out["caption_format"], "spanish_cc2": out["spanish_cc2"], "scte": out["scte"],
                         "scte_label": allowed.get(out["scte"], "Unsupported SCTE policy")})
         if kind == "youtube":
             if not cap.get("youtube_profiles", {}).get("decklink" if src["kind"] == "decklink" else "general"):
@@ -489,12 +548,12 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
     if src["kind"] == "decklink" and any(o["scte"] == "convert" for o in active):
         notes.append("Rejected or unsupported SCTE messages are discarded with a visible warning and saved diagnostic; A/V and later supported cues continue." if src["scte_error_policy"] == "continue" else "Strict SCTE mode stops the route on any rejected message.")
     return {"ready": not blockers, "blockers": list(dict.fromkeys(blockers)), "notes": notes,
-            "outputs": outputs, "command": [scrub(arg) for arg in command(cfg, cap, "WHISPER_JOURNAL_AT_START")] if not blockers else []}
+            "outputs": outputs, "command": [scrub(arg) for arg in command(cfg, cap, "WHISPER_JOURNAL_AT_START", {i: "MANUAL_JOURNAL_AT_START_"+str(i) for i in range(len(cfg["outputs"]))}, "BILINGUAL_JOURNAL_AT_START")] if not blockers else []}
 
 
 def input_command(cfg: dict, *, monitor=False, capabilities=None) -> list[str]:
     src = cfg["input"]
-    args = [executable(src["kind"] == "decklink" or any(o["enabled"] and (o["kind"] == "decklink" or o["captions"] == "recaption") for o in cfg["outputs"])), "-hide_banner", "-nostdin", "-n", "-loglevel", "info"]
+    args = [executable(src["kind"] == "decklink" or any(o["enabled"] and (o["kind"] == "decklink" or o["captions"] == "recaption" or o["scte"] == "manual" or (o["captions"] == "pass" and o.get("caption_format", "both") != "both")) for o in cfg["outputs"])), "-hide_banner", "-nostdin", "-n", "-loglevel", "info"]
     if src["kind"] == "file" and src["realtime"]:
         args += ["-re"]
     if src["kind"] == "decklink":
@@ -526,18 +585,34 @@ def input_command(cfg: dict, *, monitor=False, capabilities=None) -> list[str]:
     return args
 
 
-def command(cfg: dict, capabilities=None, caption_journal=None) -> list[str]:
+def command(cfg: dict, capabilities=None, caption_journal=None, manual_journals=None, bilingual_journal=None) -> list[str]:
     src = cfg["input"]
     cap = capabilities or {}
     legacy = cap.get("decklink_profile") == "compatibility"
     args = input_command(cfg, capabilities=cap)
-    def replacement_filter():
+    def replacement_filter(out):
         if caption_journal is None:
             raise ConfigError("Whisper output requires a running caption worker")
-        return "spankvanc_cc=journal="+str(Path(caption_journal).resolve()).encode("utf-8").hex()
-    for out in cfg["outputs"]:
+        selected = bilingual_journal if out.get("spanish_cc2") else caption_journal
+        if selected is None:
+            raise ConfigError("Spanish CC2 requires a running bilingual journal")
+        value = "spankvanc_cc=journal="+str(Path(selected).resolve()).encode("utf-8").hex()
+        if out.get("spanish_cc2"):
+            value += ":cc2=1"
+        if out.get("caption_format", "608") != "608":
+            value += ":format="+{"608":"cea608", "708":"cea708", "both":"both"}[out["caption_format"]]
+        return value
+    def select_filter(out):
+        if out["captions"] == "pass" and out.get("caption_format", "both") != "both":
+            return "spankvanc_cc=source=1:format="+{"608":"cea608", "708":"cea708"}[out["caption_format"]]
+        return None
+    for output_index, out in enumerate(cfg["outputs"]):
         if not out["enabled"]:
             continue
+        if out["scte"] == "manual":
+            if manual_journals is None or output_index not in manual_journals:
+                raise ConfigError("Manual SCTE requires a route cue journal")
+            args += ["-spankvanc_manual_scte", str(manual_journals[output_index])]
         if out["kind"] == "decklink":
             args += ["-map", "0:v:0", "-map", "0:a:0?", "-map_metadata", "-1", "-map_chapters", "-1",
                      "-c:v", "v210", "-pix_fmt", "yuv422p10le", "-c:a", "pcm_s16le", "-ar", "48000", "-ac", "2"]
@@ -546,8 +621,15 @@ def command(cfg: dict, capabilities=None, caption_journal=None) -> list[str]:
             if out["captions"] == "strip":
                 args += ["-vf", "sidedata=mode=delete:type=A53_CC"]
             if out["captions"] == "recaption":
-                args += ["-vf", replacement_filter()]
-            if out["scte"] != "strip":
+                args += ["-vf", replacement_filter(out)]
+            if select_filter(out):
+                args += ["-vf", select_filter(out)]
+            if out["captions"] == "recaption" and cap.get("caption_formats_decklink"):
+                language = cfg["whisper"]["language"]
+                iso = {"en":"eng", "es":"spa", "fr":"fre", "de":"ger", "pt":"por", "it":"ita"}.get(language, language if len(language)==3 else "und")
+                args += ["-spankvanc_caption_format", {"608":"1", "708":"2", "both":"3"}[out["caption_format"]],
+                         "-spankvanc_caption_language", iso]
+            if out["scte"] not in ("strip", "manual"):
                 args += ["-fps_mode:v", "passthrough"]
                 args += ["-spankvanc_scte_output", "1" if out["scte"] == "pass" else "2"]
                 if out["scte"] == "convert":
@@ -567,7 +649,7 @@ def command(cfg: dict, capabilities=None, caption_journal=None) -> list[str]:
             bitrate = out.get("youtube_bitrate_mbps", 14)
             # fps=30 already establishes the clock before caption insertion.
             # A second CFR synchronizer can duplicate caption-bearing frames.
-            video_sync = (["-fps_mode:v", "passthrough"] if out["captions"]=="recaption" else
+            video_sync = (["-fps_mode:v", "passthrough"] if out["captions"]=="recaption" or select_filter(out) else
                           ["-r:v", "30", "-fps_mode:v", "cfr"])
             args += ["-preset", "veryfast", "-profile:v", "high", "-level:v", "4.1",
                      "-b:v", f"{bitrate}M", "-minrate:v", f"{bitrate}M", "-maxrate:v", f"{bitrate}M", "-bufsize:v", f"{bitrate * 2}M",
@@ -598,7 +680,9 @@ def command(cfg: dict, capabilities=None, caption_journal=None) -> list[str]:
         if out["captions"] == "strip":
             filters.append("sidedata=mode=delete:type=A53_CC")
         if out["captions"] == "recaption":
-            filters.append(replacement_filter())
+            filters.append(replacement_filter(out))
+        if select_filter(out):
+            filters.append(select_filter(out))
         if filters:
             args += ["-vf", ",".join(filters)]
         if out["kind"] in ("rtmp", "youtube"):
@@ -615,10 +699,18 @@ def command(cfg: dict, capabilities=None, caption_journal=None) -> list[str]:
 
 
 def process_group_options():
-    return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if os.name == "nt" else {}
+    return hidden_process_options(new_group=True)
 
 
 def terminate_process(process):
+    if getattr(process, "_spank_control_stdin", False) is True:
+        try:
+            process.stdin.write("q\n")
+            process.stdin.flush()
+            return
+        except (OSError, ValueError):
+            process.terminate()
+            return
     if os.name == "nt":
         try:
             process.send_signal(signal.CTRL_BREAK_EVENT)
@@ -634,9 +726,15 @@ class Engine:
         self.config_path = state_dir / "route.json"
         self.lock = threading.RLock()
         self.logs = deque(maxlen=200)
+        from .translation import TranslationPreview
+        self.translation = TranslationPreview(state_dir)
         self.process = None
+        self.manual_journals = {}
+        self.manual_breaks = {}
+        self.manual_event = 0
         self.monitor_process = None
         self.whisper_process = None
+        self.bilingual = None
         self.source_monitor = SourceMonitor()
         self.last_exit = None
         self.stop_requested = False
@@ -646,6 +744,7 @@ class Engine:
             # blocked by preflight and cannot be saved or started unchanged.
             self.config = validate(json.loads(self.config_path.read_text()), check_scte=False)
         self.capabilities = doctor()
+        self.capabilities["translation_available"] = self.translation.available()
 
     def monitor_state(self):
         with self.lock:
@@ -673,7 +772,7 @@ class Engine:
                 raise ConfigError("Stop the source monitor before changing its input")
             self.source_monitor = SourceMonitor({"name":cfg["input"]["address"],"mode":cfg["input"]["format_code"]})
             args = input_command(cfg, monitor=True, capabilities=self.capabilities) + ["-map", "0:v:0", "-c:v", "copy", "-f", "null", "-"]
-            process = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+            process = start_media_process(args, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
                 text=True, errors="replace", stdin=subprocess.DEVNULL, **process_group_options())
             self.monitor_process = process
             threading.Thread(target=self._read, args=(process, True), daemon=True).start()
@@ -700,6 +799,7 @@ class Engine:
             if self.monitor_process and self.monitor_process.poll() is None:
                 raise ConfigError("Stop the source monitor before refreshing devices")
             self.capabilities = doctor()
+            self.capabilities["translation_available"] = self.translation.available()
         return self.state()
 
     def save(self, raw):
@@ -721,12 +821,46 @@ class Engine:
             readiness = plan(self.config, self.capabilities)
             running = bool(self.process and self.process.poll() is None)
             return {"config": copy.deepcopy(self.config), "capabilities": self.capabilities,
+                    "translation": dict(self.translation.state(), cc2=self.bilingual.state() if self.bilingual else None),
+                    "manual_breaks": dict(self.manual_breaks) if running else {},
                     "running": running, "last_exit": self.last_exit, "stopped_by_user": self.stop_requested, "logs": list(self.logs),
                     "plan": readiness, "scte_options": scte_matrix(),
                     "monitor_running": bool(self.monitor_process and self.monitor_process.poll() is None),
                     "source_monitor": self.source_monitor.state(running or bool(self.monitor_process and self.monitor_process.poll() is None)),
                     "video_codec_options": {kind: video_codec_options(kind)
                                             for kind in ("decklink", "udp", "srt", "file", "rtmp", "youtube")}}
+
+    def inject_scte(self, raw):
+        from .manual_scte import section, append_cue
+        if not isinstance(raw, dict):
+            raise ConfigError("Cue settings must be an object")
+        with self.lock:
+            if not self.process or self.process.poll() is not None:
+                raise ConfigError("Start the route before injecting SCTE")
+            index = raw.get("output")
+            if type(index) is not int or index not in self.manual_journals:
+                raise ConfigError("Select a running output with Manual SCTE enabled")
+            action = raw.get("action")
+            duration = raw.get("duration", 60)
+            if action not in ("start", "end"):
+                raise ConfigError("Cue action must be start or end")
+            if action == "start":
+                if index in self.manual_breaks:
+                    raise ConfigError("End the current break before starting another")
+                self.manual_event = (self.manual_event % 0xffffffff) + 1
+                event = self.manual_event
+            else:
+                if index not in self.manual_breaks:
+                    raise ConfigError("There is no manual break to end on this output")
+                event = self.manual_breaks[index]
+            cue = section(event, action, duration)
+            append_cue(self.manual_journals[index], cue)
+            if action == "start":
+                self.manual_breaks[index] = event
+            else:
+                del self.manual_breaks[index]
+            self.logs.append(f"Manual SCTE {action} queued for output {index+1}; event {event}")
+            return {"queued": True, "event_id": event, "action": action}
 
     def start(self, raw):
         with self.lock:
@@ -741,26 +875,56 @@ class Engine:
             self.last_exit = None
             self.stop_requested = False
             worker=None;journal=None
+            bilingual=None
+            if any(o["enabled"] and o.get("spanish_cc2") for o in cfg["outputs"]):
+                self.translation.ensure_ready()
+                from .bilingual import BilingualJournal
+                bilingual=BilingualJournal(self.state_dir/'whisper'/'bilingual.pairs', rate=25)
+            self.bilingual=bilingual
             if any(o["enabled"] and o["captions"]=="recaption" for o in cfg["outputs"]):
                 from .whisper_runtime import prepare
                 try:
-                    worker,journal=prepare(self.state_dir,cfg,self.logs.append,process_group_options())
-                except (OSError,RuntimeError) as exc:raise ConfigError(str(exc)) from exc
+                    worker,journal=prepare(self.state_dir,cfg,lambda line: self._whisper_log(line,bilingual),process_group_options())
+                except (OSError,RuntimeError) as exc:
+                    if bilingual:bilingual.close()
+                    raise ConfigError(str(exc)) from exc
             self.whisper_process=worker
+            from .manual_scte import prepare_journals
             try:
-                process = subprocess.Popen(command(cfg, self.capabilities,journal), stdout=worker.stdin if worker else subprocess.DEVNULL, stderr=subprocess.PIPE,
+                self.manual_journals = prepare_journals(self.state_dir, cfg)
+                self.manual_breaks = {}
+                process = start_media_process(command(cfg, self.capabilities,journal,self.manual_journals,bilingual.path if bilingual else None), stdout=worker.stdin if worker else subprocess.DEVNULL, stderr=subprocess.PIPE,
                                        text=True, errors="replace", stdin=subprocess.DEVNULL, **process_group_options())
             except Exception:
                 if worker:worker.kill();worker.wait()
+                if bilingual:bilingual.close()
                 raise
             if worker:
                 worker.stdin.close()
             process._spank_whisper = worker
+            process._spank_bilingual = bilingual
             self.process = process
             if worker:
                 threading.Thread(target=self._watch_whisper,args=(worker,process),daemon=True).start()
             threading.Thread(target=self._read, args=(process,), daemon=True).start()
         return self.state()
+
+    def _whisper_log(self, line, bilingual=None):
+        self.logs.append(line)
+        if line == 'Whisper clear' and bilingual:
+            bilingual.clear()
+        if line.startswith('Whisper CC1: '):
+            text=line[len('Whisper CC1: '):]
+            if bilingual:
+                if not bilingual.english(text):
+                    self.logs.append('Bilingual 608 backlog: skipped English phrase on bilingual outputs')
+            try:
+                if bilingual:
+                    self.translation.submit(text, sink=bilingual.spanish)
+                else:
+                    self.translation.submit(text)
+            except ValueError:
+                pass
 
     def _watch_whisper(self,worker,route):
         code=worker.wait()
@@ -810,11 +974,16 @@ class Engine:
                     else:
                         self.logs.append(scrub(line.rstrip()))
         code = process.wait()
+        if getattr(process, "_spank_control_stdin", False) is True:
+            try: process.stdin.close()
+            except OSError: pass
         worker=getattr(process,"_spank_whisper",None)
         if not monitor and worker and worker.poll() is None:
             try:worker.wait(timeout=3)
             except subprocess.TimeoutExpired:
                 worker.kill();worker.wait()
+        bilingual=getattr(process,"_spank_bilingual",None)
+        if not monitor and bilingual:bilingual.close()
         with self.lock:
             if monitor:
                 self.logs.append(f"Source monitor exited with status {code}")

@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
 </head>
 <body>
-  <aside class="rail"><a class="mark" href="/" aria-label="SpankVANC home">S<span>V</span></a><span class="rail-label">SIGNAL CONTROL</span><span class="version">0.12.1</span></aside>
+  <aside class="rail"><a class="mark" href="/" aria-label="SpankVANC home">S<span>V</span></a><span class="rail-label">SIGNAL CONTROL</span><span class="version">0.14.0</span></aside>
   <div class="workspace">
     <header><div><div class="eyebrow">BROADCAST TOOLKIT / LOCAL CONTROL</div><h1>Spank<span>VANC</span><span class="preview">DEVELOPMENT PREVIEW</span></h1></div><div class="status"><span class="dot" id="state-dot"></span><span id="route-status">Connecting</span><span class="host">LOCAL ENGINE</span></div></header>
 
@@ -18,6 +18,7 @@
         <label>Route name<input id="route-name" maxlength="100"></label>
         <label>Input type<select id="input-kind"><option value="decklink">Blackmagic DeckLink · SDI</option><option value="udp">UDP · MPEG-TS</option><option value="srt">SRT · MPEG-TS</option><option value="rtmp">RTMP / RTMPS</option><option value="file">Local file · test source</option></select></label>
         <label id="source-address-label">Device name / source address<input id="input-address" placeholder="Select a source to begin" autocomplete="off" spellcheck="false"></label>
+        <label id="input-srt-label" hidden>SRT connection mode<select id="input-srt-mode"><option value="caller">Caller</option><option value="listener">Listener</option><option value="rendezvous">Rendezvous</option></select><span class="subtle">Caller connects to a peer. Listener binds a local address and waits. Rendezvous uses the peer address with localip/localport in the URL.</span></label>
         <div id="decklink-source" hidden>
           <label>Blackmagic input device<select id="decklink-device"></select></label>
           <label>SDI video mode<select id="decklink-mode"></select></label>
@@ -49,6 +50,14 @@
         <p class="subtle">Shows incoming CEA-608 text, independent of output Pass/Strip. CC1–CC4 are selectable. Native 708 packets are counted; 708 service text rendering is not supported yet. Standalone monitoring captures locally without sending an output.</p>
         <details><summary>Rejected SCTE messages</summary><pre id="scte-rejections" class="caption-history">No rejected messages.</pre><p class="subtle">Saved under runtime/scte-rejections.ndjson. Includes rejected ANC bytes for diagnosis; stream destinations are excluded.</p></details>
         <details><summary>Recent caption text</summary><pre id="caption-history" class="caption-history">No decoded text yet.</pre></details>
+      </section>
+      <section class="panel caption-panel" aria-label="Spanish translation preview">
+        <div class="panel-title"><div><span class="eyebrow">DASHBOARD PREVIEW</span><h3>English → Spanish</h3></div><span class="tag">OPUS-MT</span></div>
+        <p class="subtle">Shows live Whisper translations. Enable “Add Spanish translation on CC2” on each desired output to transmit them. Text entered below is for Dashboard preview only.</p>
+        <label>English text<input id="translation-input" maxlength="2000" value="Good evening. Here is the latest local news."></label>
+        <button id="translation-submit" type="button">Translate text</button>
+        <p id="translation-status" class="subtle">Not installed</p>
+        <pre id="translation-history" class="caption-history" aria-live="polite">No translation yet.</pre>
       </section>
     </main>
     <footer><span>SPANKVANC / ANC · VANC · CAPTIONS · CUES</span><span>Python engine · Linux first · Windows target</span></footer>

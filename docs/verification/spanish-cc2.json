@@ -1,0 +1,39 @@
+{
+  "feature": "optional Spanish CEA-608 CC2",
+  "unit_media_tests": 116,
+  "bilingual_codec_outputs": 8,
+  "frames_per_codec_output": 300,
+  "codecs": [
+    "H.264",
+    "MPEG-2"
+  ],
+  "verified": [
+    "CC1 English",
+    "CC2 Spanish accents and punctuation",
+    "English-only 708 Service 1",
+    "unselected English output isolation",
+    "strip isolation",
+    "per-output browser persistence and default off",
+    "remote installed checkbox and in-memory preflight",
+    "manual Dashboard preview stays off air"
+  ],
+  "remote_synthetic_file_test": {
+    "outputs": 3,
+    "frames_per_output": 539,
+    "translated_phrases": 3,
+    "skipped_phrases": 0,
+    "translation_latency_ms": [
+      31,
+      63,
+      47
+    ],
+    "physical_media_started": false
+  },
+  "limitations": [
+    "Physical CC2 receiver check pending",
+    "Long-run throughput unverified",
+    "Recognition and translation quality require review",
+    "Shared 608 bandwidth can skip phrases",
+    "No Spanish native 708 Service 2"
+  ]
+}

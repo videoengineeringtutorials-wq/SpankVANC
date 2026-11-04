@@ -83,8 +83,8 @@ class LegacyFFmpegTests(unittest.TestCase):
 
     def test_windows_process_group_and_graceful_stop(self):
         process=mock.Mock()
-        with mock.patch('spankvanc.engine.os.name','nt'),mock.patch.object(subprocess,'CREATE_NEW_PROCESS_GROUP',0x200,create=True),mock.patch.object(signal,'CTRL_BREAK_EVENT',1,create=True):
-            self.assertEqual(process_group_options(),{'creationflags':0x200})
+        with mock.patch('spankvanc.engine.os.name','nt'),mock.patch.object(subprocess,'CREATE_NEW_PROCESS_GROUP',0x200,create=True),mock.patch.object(subprocess,'CREATE_NO_WINDOW',0x08000000,create=True),mock.patch.object(signal,'CTRL_BREAK_EVENT',1,create=True):
+            self.assertEqual(process_group_options(),{'creationflags':0x08000200})
             terminate_process(process);process.send_signal.assert_called_once_with(1)
             process.terminate.assert_not_called()
             process.send_signal.side_effect=OSError('No console')

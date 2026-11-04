@@ -294,7 +294,13 @@ if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}"""
         self.ready=True; self.step='Setup complete'
         self.log('Your app is ready. Open SpankVANC and make a short test recording.')
 
-    def run(self, device):
+    def translation(self):
+        helper=HERE/'translation_setup.py'
+        spec=importlib.util.spec_from_file_location('spankvanc_translation_setup',helper)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        module.install(self)
+
+    def run(self, device, translation=False):
         if os.name != 'nt': raise ValueError('This setup wizard installs on Windows 11 x64.')
         if sys.getwindowsversion().build<22000:raise ValueError('This guided setup requires Windows 11. Your PC was not changed.')
         if device not in ('cpu','cuda'): raise ValueError('Choose CPU or the tested CUDA 11.8 profile.')
@@ -311,6 +317,7 @@ if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}"""
         if not self.ensure_wsl(): return
         if not self.runtime(): return
         self.speech(device)
+        if translation:self.translation()
         existing=load_object(self.settings).get('decklink_ffmpeg_path')
         valid=False
         if existing and Path(existing).is_file():
@@ -367,7 +374,9 @@ def handler(setup,token,port):
                     setup.start(lambda:setup.select_sdk(value))
                 elif self.path=='/api/install':
                     if data.get('consent') is not True:raise ValueError('Review the setup actions and select the consent box first.')
-                    device=data.get('device','cpu');setup.start(lambda:setup.run(device))
+                    device=data.get('device','cpu');translation=data.get('translation',False)
+                    if type(translation) is not bool:raise ValueError('Translation selection must be true or false.')
+                    setup.start(lambda:setup.run(device,translation=True) if translation else setup.run(device))
                 elif self.path in ('/api/driver','/api/sdk'):
                     webbrowser.open(DRIVER_URL if self.path.endswith('driver') else SDK_URL)
                 elif self.path=='/api/launch':

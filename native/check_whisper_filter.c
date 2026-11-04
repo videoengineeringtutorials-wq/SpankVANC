@@ -7,14 +7,22 @@
 #include <libklvanc/vanc.h>
 #include <stdio.h>
 #include <string.h>
-static int cdp_seen, cdp_expected, cdp_error;
+#include "caption_services.h"
+static int cdp_seen, cdp_expected, cdp_error, expected_format;
 static int on_cdp(void *opaque,struct klvanc_context_s *ctx,struct klvanc_packet_eia_708b_s *p) {
     (void)opaque;(void)ctx;
     cdp_seen++;
     if(p->ccdata.cc_count!=cdp_expected || !p->header.caption_service_active || !p->header.ccdata_present) cdp_error=1;
+    if (!p->header.svcinfo_present || !p->header.svc_info_start || !p->header.svc_info_complete ||
+        p->ccsvc.svc_count!=(expected_format==3?2:1)) cdp_error=1;
+    for (int i=0;i<p->ccsvc.svc_count;i++) {
+        int digital=(expected_format==2 || (expected_format==3 && i==1));
+        if (p->ccsvc.svc[i].caption_service_number!=digital || p->ccsvc.svc[i].digital_cc!=digital ||
+            memcmp(p->ccsvc.svc[i].language,"eng",3) || (digital && p->ccsvc.svc[i].csn!=1)) cdp_error=1;
+    }
     return 0;
 }
-static int run(int num,int den,int count) {
+static int run(int num,int den,int count,int format) {
     const char *name="whisper-filter-test.pairs";
     FILE *f=fopen(name,"wb");
     uint8_t pairs[]={0x94,0x25,0x94,0x25,0xc8,0x49,0x94,0xad};
@@ -25,7 +33,7 @@ static int run(int num,int den,int count) {
     AVFilterGraph *g=avfilter_graph_alloc();AVFilterContext *src,*cc,*sink;
     snprintf(args,sizeof(args),"video_size=64x64:pix_fmt=%d:time_base=%d/%d:pixel_aspect=1/1:frame_rate=%d/%d",AV_PIX_FMT_YUV422P10LE,den,num,num,den);
     if(avfilter_graph_create_filter(&src,avfilter_get_by_name("buffer"),"src",args,NULL,g)<0)return 2;
-    snprintf(args,sizeof(args),"journal=%s",hex);
+    snprintf(args,sizeof(args),"journal=%s:format=%s",hex,format==1?"cea608":format==2?"cea708":"both");
     if(avfilter_graph_create_filter(&cc,avfilter_get_by_name("spankvanc_cc"),"cc",args,NULL,g)<0)return 3;
     if(avfilter_graph_create_filter(&sink,avfilter_get_by_name("buffersink"),"sink",NULL,NULL,g)<0)return 4;
     if(avfilter_link(src,0,cc,0)<0 || avfilter_link(cc,0,sink,0)<0 || avfilter_graph_config(g,NULL)<0)return 5;
@@ -35,7 +43,7 @@ static int run(int num,int den,int count) {
     struct klvanc_context_s *vctx=NULL;
     if(klvanc_context_create(&vctx))return 7;
     struct klvanc_callbacks_s callbacks={.eia_708b=on_cdp};vctx->callbacks=&callbacks;
-    int found=0;int64_t field_index=0;
+    int found=0;int64_t field_index=0;int sequence=-1,digital_packets=0;
     for(int i=0;i<40;i++) {
         /* Appending an incomplete pair must not lose its first byte at EOF. */
         if(i==20 || i==22) {f=fopen(name,"ab");if(!f)return 8;fwrite(pairs+(i==20?0:1),1,1,f);fclose(f);}
@@ -49,18 +57,31 @@ static int run(int num,int den,int count) {
         if(!data || data->size!=count*3)return 11;
         /* Independent budget/field cadence check, including silence frames. */
         int fields=num==24000 || num==24 ? (i%2 ? 3:2) : (num/den<=30 ? 2:1);
+        uint8_t digital[64];int digital_size=0;
         for(int j=0;j<count;j++) {
             uint8_t *v=data->data+j*3;
-            if(j>=fields) {if(v[0]!=0xfa || v[1] || v[2])return 12;continue;}
+            if(j>=fields) {
+                if(v[0]&4) {
+                    if(format==1 || digital_size+2>64 || v[0]!=(digital_size?0xfe:0xff))return 24;
+                    digital[digital_size++]=v[1];digital[digital_size++]=v[2];
+                } else if(v[0]!=0xfa || v[1] || v[2])return 12;
+                continue;
+            }
             if(field_index++%2) {if(v[0]!=0xf9 || v[1]!=0x80 || v[2]!=0x80)return 13;}
             else {
-                if(v[0]!=0xfc || !(__builtin_popcount(v[1])%2) || !(__builtin_popcount(v[2])%2))return 14;
+                if(v[0]!=(format==2?0xf8:0xfc) || !(__builtin_popcount(v[1])%2) || !(__builtin_popcount(v[2])%2))return 14;
                 if(v[1]!=0x80 || v[2]!=0x80) {
                     int at=found<4 ? found*2:0;
                     if(found>=5 || memcmp(v+1,pairs+at,2))return 15;
                     found++;
                 }
             }
+        }
+        if(digital_size) {
+            int next=digital[0]>>6;
+            if((digital[0]&63)*2!=digital_size || digital[1]>>5!=1 || !(digital[1]&31))return 25;
+            if(sequence>=0 && next!=(sequence+1)%4)return 26;
+            sequence=next;digital_packets++;
         }
         if(!av_dict_get(out->metadata,"independent",NULL,0) || av_frame_get_side_data(in,AV_FRAME_DATA_A53_CC)->data[0]!=0xff)return 16;
         /* Actual V210 packet side data, then the same CDP builder as SDI muxer. */
@@ -75,6 +96,7 @@ static int run(int num,int den,int count) {
             cdp->ccdata.cc[j].cc_valid=(raw[j*3]&4)!=0;cdp->ccdata.cc[j].cc_type=raw[j*3]&3;
             memcpy(cdp->ccdata.cc[j].cc_data,raw+j*3+1,2);
         }
+        spank_caption_services(cdp,format,"eng");expected_format=format;
         klvanc_finalize_EIA_708B(cdp,i);
         uint16_t *words=NULL,nwords=0;uint8_t *bytes=NULL;uint16_t nbytes=0;
         if(klvanc_convert_EIA_708B_to_words(cdp,&words,&nwords) || klvanc_convert_EIA_708B_to_packetBytes(cdp,&bytes,&nbytes))return 20;
@@ -86,15 +108,46 @@ static int run(int num,int den,int count) {
         av_frame_free(&in);av_frame_free(&out);
     }
     klvanc_context_destroy(vctx);avcodec_free_context(&enc);avfilter_graph_free(&g);remove(name);
-    if(found!=5)return 23;
-    printf("%d/%d fps: continuous %d-tuple A/53, fields, parity, V210/CDP/VANC checksums: PASS\n",num,den,count);
+    if(found!=(format==2?0:5) || (format==1?digital_packets!=0:digital_packets<3))return 23;
+    printf("format %d, %d/%d fps: continuous %d-tuple A/53, fields, parity, V210/CDP/VANC checksums: PASS\n",format,num,den,count);
+    return 0;
+}
+static int select_source(int format) {
+    AVFilterGraph *g=avfilter_graph_alloc();AVFilterContext *src,*cc,*sink;
+    char args[256];
+    snprintf(args,sizeof(args),"video_size=64x64:pix_fmt=%d:time_base=1/30:pixel_aspect=1/1:frame_rate=30/1",AV_PIX_FMT_YUV422P10LE);
+    if(avfilter_graph_create_filter(&src,avfilter_get_by_name("buffer"),"src",args,NULL,g)<0)return 30;
+    snprintf(args,sizeof(args),"source=1:format=%s",format==1?"cea608":format==2?"cea708":"both");
+    if(avfilter_graph_create_filter(&cc,avfilter_get_by_name("spankvanc_cc"),"select",args,NULL,g)<0 ||
+       avfilter_graph_create_filter(&sink,avfilter_get_by_name("buffersink"),"sink",NULL,NULL,g)<0 ||
+       avfilter_link(src,0,cc,0)<0 || avfilter_link(cc,0,sink,0)<0 || avfilter_graph_config(g,NULL)<0)return 31;
+    AVFrame *in=av_frame_alloc(),*out=av_frame_alloc();
+    in->width=in->height=64;in->format=AV_PIX_FMT_YUV422P10LE;in->pts=0;
+    if(av_frame_get_buffer(in,32)<0)return 32;
+    const uint8_t original[]={0xfc,0xc8,0x49,0xf9,0x80,0x80,0xff,0x02,0x21,0xfe,0x41,0};
+    AVFrameSideData *data=av_frame_new_side_data(in,AV_FRAME_DATA_A53_CC,sizeof(original));
+    memcpy(data->data,original,sizeof(original));
+    AVFrameSideData *other=av_frame_new_side_data(in,AV_FRAME_DATA_AFD,1);other->data[0]=0x55;
+    if(av_buffersrc_add_frame_flags(src,in,AV_BUFFERSRC_FLAG_KEEP_REF)<0 || av_buffersink_get_frame(sink,out)<0)return 33;
+    data=av_frame_get_side_data(out,AV_FRAME_DATA_A53_CC);
+    if(!data || data->size!=sizeof(original) || memcmp(av_frame_get_side_data(in,AV_FRAME_DATA_A53_CC)->data,original,sizeof(original)))return 34;
+    for(unsigned i=0;i<sizeof(original);i+=3) {
+        int excluded=(i<6 && format==2) || (i>=6 && format==1);
+        if(excluded) {if(data->data[i]&4)return 35;}
+        else if(memcmp(data->data+i,original+i,3))return 36;
+    }
+    if(av_frame_get_side_data(out,AV_FRAME_DATA_AFD)->data[0]!=0x55)return 37;
+    av_frame_free(&in);av_frame_free(&out);avfilter_graph_free(&g);
     return 0;
 }
 int main(void) {
+    for(int format=1;format<=3;format++){int r=select_source(format);if(r)return r;}
     int rates[][3]={{30000,1001,20},{30,1,20},{60000,1001,10},{60,1,10},{25,1,24},{50,1,12},{24000,1001,25},{24,1,25}};
     for(unsigned i=0;i<sizeof(rates)/sizeof(rates[0]);i++) {
-        int r=run(rates[i][0],rates[i][1],rates[i][2]);
-        if(r){printf("FAIL %d/%d: %d\n",rates[i][0],rates[i][1],r);return r;}
+        for(int format=1;format<=3;format++) {
+            int r=run(rates[i][0],rates[i][1],rates[i][2],format);
+            if(r){printf("FAIL format%d %d/%d: %d\n",format,rates[i][0],rates[i][1],r);return r;}
+        }
     }
     return 0;
 }

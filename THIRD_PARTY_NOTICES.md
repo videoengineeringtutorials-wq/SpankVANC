@@ -35,3 +35,11 @@ Its payload remains app-only. Python 3.13.12 for speech, Torch 2.7.1, Whisper
 locally from their upstream sources; their notices are retained in those
 installations. The installer does not grant redistribution rights to the locally
 built FFmpeg engine or the user-supplied Blackmagic SDK/driver.
+
+Optional Spanish translation downloads [Helsinki-NLP/opus-mt-en-es](https://huggingface.co/Helsinki-NLP/opus-mt-en-es)
+revision `5bc4493d463cf000c1f0b50f8d56886a392ed4ab`, whose model card declares
+Apache-2.0. The model card, source-file digests and converted-model provenance
+are retained locally. CTranslate2 (MIT), SentencePiece (Apache-2.0), Transformers
+(Apache-2.0), sacremoses (LGPL-2.1) and their dependencies are installed separately
+with their package notices. Their licenses are not replaced by this project's
+MIT license. No translation weights or conversion dependencies are bundled.

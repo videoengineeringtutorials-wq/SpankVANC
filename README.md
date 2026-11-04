@@ -4,21 +4,26 @@ A local broadcast routing and monitoring app for DeckLink SDI, captions and
 SCTE cues. Python serves a browser control panel on **127.0.0.1:8877**; media
 processing runs in a separately installed FFmpeg. Media and control remain local. No activation key, trial timer or online license check is required.
 
-**Version 0.12.1 — experimental.** Test on a spare route before using a live
+**Version 0.14.0 — experimental.** Test on a spare route before using a live
 program. CPU encoding is used; an NVIDIA GPU is not required.
+
+0.14.0 adds local OPUS-MT English-to-Spanish translation and optional per-output
+**Spanish CC2**, alongside English CC1. It also includes native 708 Service 1,
+**608 / 708 / 608 + 708** output selection, manual SCTE controls and SRT connection
+modes. See [caption output and limits](docs/WHISPER.md).
 
 ## Windows downloads
 
-**Current tester release: 0.12.1 — Windows 11 x64.** Start with the guided
+**Current tester release: 0.14.0 — Windows 11 x64.** Start with the guided
 installer for a new PC, or use the portable ZIP if you already have the required
 engines and dependencies.
 
 | Download | Use | Verify |
 | --- | --- | --- |
-| [Windows Setup EXE](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.12.1/SpankVANC-0.12.1-Windows11-x64-Setup.exe) | Guided installation and repair | [SHA-256](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.12.1/SpankVANC-0.12.1-Windows11-x64-Setup.exe.sha256) |
-| [Windows portable App ZIP](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.12.1/SpankVANC-0.12.1-Windows11-x64-App.zip) | Extract and run with bundled Python | [SHA-256](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.12.1/SpankVANC-0.12.1-Windows11-x64-App.zip.sha256) |
+| [Windows Setup EXE](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.14.0/SpankVANC-0.14.0-Windows11-x64-Setup.exe) | Guided installation and repair | [SHA-256](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.14.0/SpankVANC-0.14.0-Windows11-x64-Setup.exe.sha256) |
+| [Windows portable App ZIP](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.14.0/SpankVANC-0.14.0-Windows11-x64-App.zip) | Extract and run with bundled Python | [SHA-256](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.14.0/SpankVANC-0.14.0-Windows11-x64-App.zip.sha256) |
 
-[0.12.1 release notes](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/tag/v0.12.1)
+[0.14.0 release notes](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/tag/v0.14.0)
 · [All releases and previous Windows downloads](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases)
 · [Windows installation guide](docs/WINDOWS_INSTALLER.md)
 
@@ -48,8 +53,8 @@ and available controls have changed since then. Click an image to view it full s
 
 SpankVANC is MIT-licensed open source. Internet access is needed for setup downloads, not for application activation or local operation.
 
-**Windows testers: [download the 0.12.1 Setup EXE](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.12.1/SpankVANC-0.12.1-Windows11-x64-Setup.exe)**
-([release notes and checksums](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/tag/v0.12.1)).
+**Windows testers: [download the 0.14.0 Setup EXE](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/download/v0.14.0/SpankVANC-0.14.0-Windows11-x64-Setup.exe)**
+([release notes and checksums](https://github.com/videoengineeringtutorials-wq/SpankVANC/releases/tag/v0.14.0)).
 It installs the app and opens a guided wizard for isolated Python/Whisper/Torch,
 build prerequisites and a local DeckLink engine build. See the
 [step-by-step installer guide](docs/WINDOWS_INSTALLER.md). Blackmagic downloads,
@@ -129,7 +134,8 @@ program commands to SCTE-104. See [SDI SCTE output](docs/SDI_SCTE.md) for PID
 selection, timing limits and rejected-cue handling.
 
 Whisper replacement adds live CC1 captions from routed program audio with optional
-CUDA processing. See [Whisper setup and limits](docs/WHISPER.md).
+CUDA processing. An optional per-output Spanish CC2 checkbox uses the local OPUS-MT
+translator alongside English CC1. See [Whisper setup and limits](docs/WHISPER.md).
 
 General ANC transport and live serial GPO dispatch are **not integrated**. Firmware/native helpers are
 bench tools. Preflight blocks unfinished features.
