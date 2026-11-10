@@ -72,7 +72,7 @@ class SetupTests(unittest.TestCase):
             wizard.progress['python_runtime_sha256']=wizard.deps['python']['sha256']
             with patch.object(wizard,'command') as command:wizard.speech('cpu')
             installs=[c.args[0] for c in command.call_args_list if 'pip' in c.args[0]]
-            self.assertEqual(len(installs),2)
+            self.assertEqual(len(installs),3)
             self.assertTrue(all('--no-cache-dir' in args for args in installs))
             saved=setup.load_object(wizard.settings)
             for name,value in settings.items():self.assertEqual(saved[name],value)
@@ -80,6 +80,27 @@ class SetupTests(unittest.TestCase):
             self.assertTrue(any('torch==2.7.1+cpu' in call.args[0] for call in command.call_args_list))
             self.assertTrue(any('download_root=' in ' '.join(map(str,call.args[0])) for call in command.call_args_list))
             self.assertEqual(wizard.progress['speech_profile'],'cpu')
+            self.assertEqual(wizard.progress['faster_whisper_packages'],wizard.deps['faster_whisper_packages'])
+            self.assertTrue(any('faster-whisper==1.2.1' in args and 'pyserial==3.5' in args for args in installs))
+
+    def test_existing_speech_install_adds_faster_without_reinstalling_torch(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);wizard=setup.Setup(root,root/'data')
+            settings={'decklink_ffmpeg_path':'working.exe','other':42}
+            setup.save_object(wizard.settings,settings)
+            wizard.python.parent.mkdir();wizard.python.touch()
+            wizard.progress.update(python_runtime_sha256=wizard.deps['python']['sha256'],speech_profile='cpu')
+            with patch.object(wizard,'command') as command:wizard.speech('cpu')
+            installs=[c.args[0] for c in command.call_args_list if 'pip' in c.args[0]]
+            self.assertEqual(len(installs),1)
+            self.assertIn('faster-whisper==1.2.1',installs[0])
+            self.assertIn('pyserial==3.5',installs[0])
+            self.assertFalse(any('torch==' in str(arg) for arg in installs[0]))
+            saved=setup.load_object(wizard.settings)
+            self.assertEqual(saved['decklink_ffmpeg_path'],'working.exe')
+            with patch.object(wizard,'command') as resumed:wizard.speech('cpu')
+            self.assertFalse(any('pip' in c.args[0] for c in resumed.call_args_list))
+            self.assertTrue(any('import faster_whisper' in str(c.args[0]) for c in resumed.call_args_list))
 
     def test_corrupt_existing_settings_are_not_overwritten(self):
         with tempfile.TemporaryDirectory() as folder:

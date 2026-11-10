@@ -34,7 +34,7 @@ DEFAULT = {
     "input": {"kind": "decklink", "address": "", "realtime": True, "format_code": "", "scte_error_policy": "continue", "scte_pid": None, "srt_mode": ""},
     "outputs": [{"name": "Program TS", "kind": "udp", "address": "udp://127.0.0.1:5000?pkt_size=1316",
                  "captions": "pass", "scte": "convert", "video_codec": "h264", "enabled": True}],
-    "whisper": {"model": "small.en", "language": "en", "delay_ms": 0, "audio_channel": 1, "device": "auto"},
+    "whisper": {"backend": "openai", "compute_type": "auto", "serial_port": "", "model": "small.en", "language": "en", "delay_ms": 0, "audio_channel": 1, "device": "auto"},
     "gpo": {"enabled": False, "port": "", "baud": 115200, "channel": 1, "pulse_ms": 250},
 }
 
@@ -44,6 +44,8 @@ class ConfigError(ValueError):
 
 
 def video_codec_options(destination: str) -> dict[str, str]:
+    if destination == "null":
+        return {"none": "No video output"}
     if destination == "decklink":
         return {"uncompressed": "Uncompressed SDI"}
     if destination in ("rtmp", "youtube"):
@@ -89,7 +91,7 @@ def srt_address(endpoint: dict) -> str:
 
 def scte_matrix() -> dict:
     return {source: {destination: scte_options(source, destination)
-                     for destination in ("decklink", "udp", "srt", "file", "rtmp", "youtube")}
+                     for destination in ("decklink", "udp", "srt", "file", "rtmp", "youtube", "null")}
             for source in ("decklink", "udp", "srt", "file", "rtmp")}
 
 
@@ -140,8 +142,11 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
         if not isinstance(out["name"], str) or not 1 <= len(out["name"]) <= 100 or out["name"] in names:
             raise ConfigError("Output names must be nonempty and unique")
         names.add(out["name"])
-        if out["kind"] not in ("decklink", "udp", "srt", "rtmp", "youtube", "file"):
+        if out["kind"] not in ("decklink", "udp", "srt", "rtmp", "youtube", "file", "null"):
             raise ConfigError("Unknown output type")
+        if out["kind"] == "null":
+            out.update(address="", video_codec="none", captions="recaption",
+                       caption_format="608", spanish_cc2=False, scte="strip")
         # Older saved routes used H.264 implicitly; preserve that default.
         out.setdefault("video_codec", "uncompressed" if out["kind"] == "decklink" else "h264")
         if not isinstance(out["video_codec"], str) or out["video_codec"] not in video_codec_options(out["kind"]):
@@ -203,6 +208,12 @@ def validate(raw: dict, *, check_scte: bool = True) -> dict:
         if type(out["enabled"]) is not bool:
             raise ConfigError("Output enabled must be true or false")
     whisper = cfg["whisper"]
+    if whisper['backend'] not in ('openai', 'faster'):
+        raise ConfigError('Unknown Whisper backend')
+    if whisper['compute_type'] not in ('auto', 'default', 'float32', 'float16', 'int8', 'int8_float16', 'int8_float32', 'bfloat16', 'int8_bfloat16'):
+        raise ConfigError('Unknown Faster Whisper compute type')
+    if not isinstance(whisper['serial_port'], str) or len(whisper['serial_port']) > 256 or any(ord(c) < 32 for c in whisper['serial_port']):
+        raise ConfigError('Invalid EN530 serial port')
     if whisper["model"] not in ("tiny", "tiny.en", "base", "base.en", "small", "small.en", "medium", "medium.en", "large-v3", "turbo"):
         raise ConfigError("Unknown Whisper model")
     if not isinstance(whisper["language"], str) or not re.fullmatch(r"[a-z]{2,3}", whisper["language"]):
@@ -390,7 +401,7 @@ def doctor() -> dict:
                 result["recaption_"+label] = bool(re.search(r"\bf32le\b",mux.stdout+mux.stderr))
         except (OSError,subprocess.TimeoutExpired):
             result["recaption_"+label] = False
-    result["recaption_runtime"] = result["whisper"].get("available",False) and result.get("recaption_decklink",False)
+    result["recaption_runtime"] = (result["whisper"].get("available",False) or result["whisper"].get("faster",{}).get("available",False)) and result.get("recaption_decklink",False)
     result["youtube_profiles"] = {}
     for label, selected in (("general", binary), ("decklink", deck_binary)):
         try:
@@ -444,7 +455,7 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
         label = out["name"]
         kind = out["kind"]
         codec = out["video_codec"]
-        if kind != "decklink":
+        if kind not in ("decklink", "null"):
             encoder = "libx264" if codec == "h264" else "mpeg2video"
             if not cap.get(encoder):
                 blockers.append(f"{label}: FFmpeg needs the {encoder} encoder")
@@ -453,9 +464,9 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
         allowed = scte_options(src["kind"], kind)
         if out["scte"] not in allowed:
             blockers.append(f"{label}: {src['kind']} → {kind} allows only " + " or ".join(allowed.values()))
-        if not out["address"]:
+        if kind != "null" and not out["address"]:
             blockers.append(f"{label}: paste a YouTube stream key" if kind == "youtube" else f"{label}: set a destination")
-        if out["address"] in destinations:
+        if kind != "null" and out["address"] in destinations:
             blockers.append(f"{label}: duplicate output destination")
         destinations.add(out["address"])
         if src["kind"] == kind == "file" and Path(src["address"]).resolve() == Path(out["address"]).resolve():
@@ -497,7 +508,7 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
                     blockers.append(f"{label}: SCTE-104 passthrough needs the updated ANC capture engine")
             elif not (src["kind"] == "decklink" and kind in ("udp", "srt", "file") and out["scte"] == "convert" and cap.get("scte_runtime")):
                 blockers.append(f"{label}: SCTE preservation/conversion needs the native ANC/TS adapter")
-        if kind != "decklink" and cap.get("decklink_profile") == "compatibility":
+        if kind not in ("decklink", "null") and cap.get("decklink_profile") == "compatibility":
             if out["captions"] == "pass" and not cap.get("caption_encoders", {}).get(codec):
                 blockers.append(f"{label}: this FFmpeg encoder does not expose A/53 caption pass; choose another encoder or Strip")
             if out["captions"] == "strip" and not cap.get("caption_strip_filter"):
@@ -515,10 +526,16 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
                 blockers.append(f"{label}: Spanish CC2 requires the bilingual caption engine update")
             notes.append(f"{label}: English CC1 and Spanish CC2 share 608 bandwidth. Translation adds latency; overloaded Spanish phrases are skipped. Native 708 Service 1 stays English.")
         if out["captions"] == "recaption":
+            if kind == "null" and not cfg["whisper"]["serial_port"]:
+                blockers.append(f"{label}: set an EN530 serial port for NULL output")
             w=cap.get("whisper",{})
+            if cfg['whisper']['backend'] == 'faster':
+                w=w.get('faster', {})
+            if cfg['whisper']['serial_port'] and not cap.get('whisper', {}).get('serial'):
+                blockers.append(f"{label}: install pyserial in the configured Whisper Python")
             if not w.get("available"):
-                blockers.append(f"{label}: configure a Python installation with Whisper, PyTorch and NumPy")
-            if not cap.get("recaption_decklink"):
+                blockers.append(f"{label}: install the selected Whisper backend and NumPy in the configured speech Python")
+            if kind != "null" and not cap.get("recaption_decklink"):
                 blockers.append(f"{label}: rebuild the selected engine with the live 608 replacement filter")
             if cfg["whisper"]["device"]=="cuda" and not w.get("cuda"):
                 blockers.append(f"{label}: CUDA requested but unavailable in Whisper Python")
@@ -526,7 +543,15 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
                 blockers.append(f"{label}: model unavailable in installed Whisper; choose a supported model")
             if src["kind"]=="file" and not src["realtime"]:
                 blockers.append(f"{label}: live Whisper requires reading files at program speed")
-            notes.append(f"{label}: live {out['caption_format']} two-row roll-up from routed audio channel {cfg['whisper']['audio_channel']}. Recognition and 608 transmission add latency; A/V is not delayed. Source captions are replaced only on this output.")
+            if kind != "null":
+                notes.append(f"{label}: live {out['caption_format']} two-row roll-up from routed audio channel {cfg['whisper']['audio_channel']}. Recognition and 608 transmission add latency; A/V is not delayed. Source captions are replaced only on this output.")
+        if kind == "null":
+            notes.append(f"{label}: EN530 serial captions only; no video or audio destination.")
+            outputs.append(dict(name=label, transport=kind, video_codec="none", audio_codec="none",
+                                audio_framing=None, container="EN530 serial only", captions="recaption",
+                                caption_format="608", spanish_cc2=False, scte="strip",
+                                scte_label="No SCTE carriage"))
+            continue
         video_label = video_codec_options(kind)[codec]
         outputs.append({"name": label, "transport": kind, "video_codec": codec,
                         "audio_codec": "pcm" if kind == "decklink" else "aac",
@@ -553,7 +578,7 @@ def plan(raw: dict, capabilities: dict | None = None) -> dict:
 
 def input_command(cfg: dict, *, monitor=False, capabilities=None) -> list[str]:
     src = cfg["input"]
-    args = [executable(src["kind"] == "decklink" or any(o["enabled"] and (o["kind"] == "decklink" or o["captions"] == "recaption" or o["scte"] == "manual" or (o["captions"] == "pass" and o.get("caption_format", "both") != "both")) for o in cfg["outputs"])), "-hide_banner", "-nostdin", "-n", "-loglevel", "info"]
+    args = [executable(src["kind"] == "decklink" or any(o["enabled"] and (o["kind"] == "decklink" or (o["captions"] == "recaption" and o["kind"] != "null") or o["scte"] == "manual" or (o["captions"] == "pass" and o.get("caption_format", "both") != "both")) for o in cfg["outputs"])), "-hide_banner", "-nostdin", "-n", "-loglevel", "info"]
     if src["kind"] == "file" and src["realtime"]:
         args += ["-re"]
     if src["kind"] == "decklink":
@@ -607,7 +632,7 @@ def command(cfg: dict, capabilities=None, caption_journal=None, manual_journals=
             return "spankvanc_cc=source=1:format="+{"608":"cea608", "708":"cea708"}[out["caption_format"]]
         return None
     for output_index, out in enumerate(cfg["outputs"]):
-        if not out["enabled"]:
+        if not out["enabled"] or out["kind"] == "null":
             continue
         if out["scte"] == "manual":
             if manual_journals is None or output_index not in manual_journals:
@@ -828,7 +853,7 @@ class Engine:
                     "monitor_running": bool(self.monitor_process and self.monitor_process.poll() is None),
                     "source_monitor": self.source_monitor.state(running or bool(self.monitor_process and self.monitor_process.poll() is None)),
                     "video_codec_options": {kind: video_codec_options(kind)
-                                            for kind in ("decklink", "udp", "srt", "file", "rtmp", "youtube")}}
+                                            for kind in ("decklink", "udp", "srt", "file", "rtmp", "youtube", "null")}}
 
     def inject_scte(self, raw):
         from .manual_scte import section, append_cue

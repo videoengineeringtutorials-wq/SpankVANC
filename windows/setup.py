@@ -246,6 +246,12 @@ if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}"""
                 'torch=='+self.deps['torch']+('+cpu' if device=='cpu' else '+cu118'),'--index-url',index])
             self.command([self.python,'-I','-m','pip','install','--disable-pip-version-check','--no-cache-dir',
                 'openai-whisper=='+self.deps['whisper'],'--index-url','https://pypi.org/simple'])
+        faster_packages = self.deps['faster_whisper_packages']
+        if self.progress.get('faster_whisper_packages') != faster_packages:
+            self.command([self.python,'-I','-m','pip','install','--disable-pip-version-check','--no-cache-dir',
+                *faster_packages,'--index-url','https://pypi.org/simple'])
+        self.command([self.python,'-I','-c','import faster_whisper,ctranslate2,serial; print("Faster Whisper and EN530 serial packages loaded")'])
+        self.remember(faster_whisper_packages=faster_packages)
         probe=[self.python,'-I','-c','import whisper,numpy,torch; print("Speech packages loaded; CUDA:",torch.cuda.is_available())']
         try:self.command(probe)
         except RuntimeError as exc:
@@ -290,7 +296,7 @@ if($d.ShowDialog() -eq 'OK'){[Console]::Write($d.FileName)}"""
         binary=Path(settings.get('decklink_ffmpeg_path','missing'))
         if not binary.is_file(): raise ValueError('The local media engine has not been built yet.')
         capture_helper(self.root).verify_capture(binary)
-        self.command([settings['whisper_python_path'],'-I','-c','import whisper,numpy,torch; print("Speech recognition ready")'])
+        self.command([settings['whisper_python_path'],'-I','-c','import whisper,numpy,torch,faster_whisper,ctranslate2,serial; print("Speech recognition and serial output ready")'])
         self.ready=True; self.step='Setup complete'
         self.log('Your app is ready. Open SpankVANC and make a short test recording.')
 

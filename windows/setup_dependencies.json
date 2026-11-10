@@ -48,5 +48,12 @@
       "tokenizer_config.json": "9859e3f8f73e2f50ab3e5cc2de432645347432956df4772d33209a346dd97f3b",
       "vocab.json": "257f346d7a6b2ecceafcca8ba05648ce2fd68dfaf105fb0e913dca7198f3f6d5"
     }
-  }
+  },
+  "faster_whisper_packages": [
+    "faster-whisper==1.2.1",
+    "ctranslate2==4.6.0",
+    "pyserial==3.5",
+    "setuptools==80.9.0",
+    "av==16.0.1"
+  ]
 }

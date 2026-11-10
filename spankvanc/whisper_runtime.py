@@ -13,13 +13,25 @@ WORKER=Path(__file__).with_name('whisper_worker.py')
 def python_path():return os.environ.get('SPANKVANC_WHISPER_PYTHON',sys.executable)
 
 
-def probe():
+def _probe(backend):
     try:
-        r=subprocess.run([python_path(),str(WORKER),'--probe'],capture_output=True,text=True,timeout=45, **hidden_process_options())
+        r=subprocess.run([python_path(),str(WORKER),'--probe','--backend',backend],capture_output=True,text=True,timeout=45, **hidden_process_options())
         if r.returncode:return {'available':False,'error':'Whisper worker dependencies unavailable in configured Python'}
         return json.loads(r.stdout.strip().splitlines()[-1])
     except (OSError,ValueError,subprocess.TimeoutExpired):
         return {'available':False,'error':'Could not probe configured Whisper Python'}
+
+
+def probe():
+    result = _probe('openai')
+    result['faster'] = _probe('faster')
+    try:
+        r = subprocess.run([python_path(), '-c', 'import serial'], capture_output=True,
+                           timeout=15, **hidden_process_options())
+        result['serial'] = r.returncode == 0
+    except (OSError, subprocess.TimeoutExpired):
+        result['serial'] = False
+    return result
 
 
 def prepare(state_dir,cfg,log,group_options):
@@ -28,7 +40,8 @@ def prepare(state_dir,cfg,log,group_options):
     journal.write_bytes(b'');ready.unlink(missing_ok=True)
     w=cfg['whisper']
     process=subprocess.Popen([python_path(),'-u',str(WORKER),'--journal',str(journal.resolve()),
-        '--ready',str(ready.resolve()),'--model',w['model'],'--language',w['language'],'--device',w['device']],
+        '--ready',str(ready.resolve()),'--model',w['model'],'--language',w['language'],'--device',w['device'],
+        '--backend',w['backend'],'--compute-type',w['compute_type'],'--serial-port',w['serial_port']],
         stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
         env=dict(os.environ,PYTHONIOENCODING="utf-8"),**group_options)
     import threading

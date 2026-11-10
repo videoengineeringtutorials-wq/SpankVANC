@@ -1,3 +1,51 @@
+For EN530 serial captions without video playout, select **NULL · EN530 serial
+only** as the output type and enter the EN530 serial port above. NULL runs
+Whisper from the selected source audio without a video/audio destination or
+video encoder. The source is still required; SDI capture still needs its input
+device and mode. NULL can also be enabled alongside normal video outputs;
+they share one recognition worker and serial connection. Serial sends English
+captions; video caption format and Spanish CC2 settings do not apply to NULL.
+
+## Faster Whisper and EN530 serial output
+
+The recaptioning panel now selects **OpenAI Whisper** (the saved-route default)
+or **Faster Whisper · overlap dedup**. Faster Whisper uses routed mono 16 kHz
+program audio with a four-second rolling window, a two-second hop, beam size 3,
+word timestamps and a 0.35-second stability margin. Words are deduplicated by
+absolute audio time, with text overlap matching when timestamps are missing.
+Dropped audio resets the rolling context without compressing the audio timeline.
+This follows the supplied audioWhisper EN530 dedup approach. Speed and recognition
+quality depend on the model, hardware and program material; no comparative
+benchmark or physical encoder validation has been performed for this integration.
+
+Install optional dependencies in the Python selected by `whisper_python_path`
+(or `SPANKVANC_WHISPER_PYTHON`), then refresh capabilities:
+
+```powershell
+& "C:\path\to\speech\python.exe" -m pip install faster-whisper==1.2.1 ctranslate2==4.6.0 pyserial==3.5
+```
+
+The 0.15.0 guided installer provisions both OpenAI Whisper and Faster Whisper,
+plus pyserial. Existing installations can run Finish Setup to install these
+packages in their managed speech Python. Faster Whisper requires
+its own CTranslate2 model download/cache; existing OpenAI `.pt` weights cannot be
+reused. The configured model cache directory is passed to either backend.
+Choose `auto` compute initially, `int8` for CPU or `float16` for compatible CUDA
+hardware. CTranslate2 GPU support is independent of the existing Torch CUDA
+installation. Model loading and serial opening must succeed before capture starts.
+
+Enter an optional **EN530 serial port**, for example `COM6` or `/dev/ttyUSB0`.
+Leave it blank to disable. During a running recaption route, recognized CC1 text
+is also sent once to that port, independent of the number of recaption outputs.
+This is a serial mirror; at least one enabled output must use recaptioning.
+Serial settings are fixed at **1200 baud, seven data bits, odd parity, one stop
+bit**. Commands are `01 20` + up to 32 printable ASCII characters + `0D`.
+Punctuation is transliterated before wrapping. An `E1` response sends `01 32 0D`
+and reads the recovery response without resending that caption. The bounded
+serial queue prevents blocking recognition; serial errors or sustained backlog
+fail the worker and stop the route visibly. Serial output carries English/source
+CC1 text only; Spanish CC2 remains on the existing media output path.
+
 # Optional Spanish CC2 translation
 
 On each output, select **audioWhisper · replace** and enable

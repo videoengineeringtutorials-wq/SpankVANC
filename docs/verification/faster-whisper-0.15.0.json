@@ -1,0 +1,29 @@
+{
+  "version": "0.15.0",
+  "local_tests": 125,
+  "archive_checks": "passed",
+  "native_windows": {
+    "isolated_install": "passed",
+    "manifest_hashes_and_runtime_imports": "passed",
+    "uninstall_reinstall_repair": "passed",
+    "working_install_state_preservation": "passed",
+    "dashboard_idle_and_backends_available": "passed"
+  },
+  "faster_whisper": {
+    "model": "small.en",
+    "device": "cpu",
+    "compute_type": "int8",
+    "synthetic_speech_worker": "passed",
+    "parity_and_caption_decode": "passed",
+    "gpu_inference": "unverified"
+  },
+  "en530": {
+    "framing_and_E1_unit_tests": "passed",
+    "physical_serial": "unverified"
+  },
+  "dependency_fix": {
+    "av": "16.0.1",
+    "reason": "PyAV 19 removed metadata_errors required by Faster Whisper 1.2.1 audio decoding"
+  },
+  "physical_media_started": false
+}

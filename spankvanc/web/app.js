@@ -2,7 +2,7 @@
 const $ = id => document.getElementById(id);
 const token = document.querySelector('meta[name="control-token"]').content;
 let config, currentState, scteOptions, videoCodecOptions, dirty = false;
-const kinds = {udp:"UDP · MPEG-TS",srt:"SRT · MPEG-TS",rtmp:"RTMP / RTMPS",youtube:"YouTube · RTMPS",decklink:"DeckLink · SDI",file:"Local MPEG-TS file"};
+const kinds = {udp:"UDP · MPEG-TS",srt:"SRT · MPEG-TS",rtmp:"RTMP / RTMPS",youtube:"YouTube · RTMPS",decklink:"DeckLink · SDI",file:"Local MPEG-TS file",null:"NULL · EN530 serial only"};
 async function api(path, data) {
   const response = await fetch('/api/' + path, {method:data === undefined ? 'GET':'POST', headers:{'Content-Type':'application/json','X-SpankVANC-Token':token},body:data === undefined ? undefined:JSON.stringify(data)});
   const result = await response.json();
@@ -17,6 +17,7 @@ function markDirty(){dirty=true;$('save').textContent='Save route *';}
 function renderOutputs(){
   $('outputs').replaceChildren();
   config.outputs.forEach((out,index)=>{
+    if(out.kind==='null')Object.assign(out,{address:'',video_codec:'none',captions:'recaption',caption_format:'608',spanish_cc2:false,scte:'strip'});
     const policies={...scteOptions[$('input-kind').value][out.kind]};Object.keys(policies).forEach(k=>{if(k==='manual'){if(!currentState?.capabilities[out.kind==='decklink'?'manual_scte104':'manual_scte35'])policies[k]+=' · engine update required';return;}if(k!=='strip'&&!(currentState?.capabilities.scte_runtime&&$('input-kind').value==='decklink'&&['file','udp','srt'].includes(out.kind)&&k==='convert')&&!(currentState?.capabilities.decklink_scte_output&&out.kind==='decklink'))policies[k]+=' · not available yet';});
     if(!(out.scte in policies))out.scte=Object.keys(policies)[0];
     const codecs=videoCodecOptions[out.kind];
@@ -27,6 +28,11 @@ function renderOutputs(){
     const remove=make('button','×','remove');remove.title='Remove output';remove.setAttribute('aria-label','Remove '+out.name);remove.disabled=config.outputs.length===1;remove.onclick=()=>{config.outputs.splice(index,1);markDirty();renderOutputs();};
     head.append(make('span',String(index+1).padStart(2,'0'),'output-number'),enabled,name,remove);card.append(head);
     card.append(label('Output type',select(kinds,out.kind,value=>{out.kind=value;out.address='';delete out.youtube_server;delete out.youtube_stream_key;delete out.youtube_bitrate_mbps;delete out.srt_mode;if(value==='youtube'){out.youtube_server='rtmps://a.rtmps.youtube.com:443/live2';out.youtube_stream_key='';}renderOutputs();},'kind')));
+    if(out.kind==='null'){
+      card.append(make('p','Send Whisper captions to the EN530 serial port configured above. The source supplies audio for recognition; no video or audio is output.','subtle'));
+      $('outputs').append(card);
+      return;
+    }
     if(out.kind==='youtube'){
       const server=make('input');server.type='url';server.value=out.youtube_server||'rtmps://a.rtmps.youtube.com:443/live2';server.dataset.field='youtube_server';server.autocomplete='off';server.spellcheck=false;
       const key=make('input');key.type='password';key.value=out.youtube_stream_key||'';key.dataset.field='youtube_stream_key';key.autocomplete='off';key.spellcheck=false;key.placeholder='Paste your YouTube stream key';
@@ -107,12 +113,13 @@ function fill(cfg){
   config=structuredClone(cfg);
   $('input-srt-mode').value=cfg.input.srt_mode||srtMode(cfg.input.address);
   $('scte-pid').value=cfg.input.scte_pid??'';$('scte-error-policy').value=cfg.input.scte_error_policy||'continue';$('route-name').value=cfg.name;$('input-kind').value=cfg.input.kind;$('input-address').value=cfg.input.address;$('input-realtime').checked=cfg.input.realtime;
+  $('whisper-backend').value=cfg.whisper.backend||'openai';$('whisper-compute').value=cfg.whisper.compute_type||'auto';$('whisper-serial').value=cfg.whisper.serial_port||'';
   $('whisper-model').value=cfg.whisper.model;$('whisper-language').value=cfg.whisper.language;$('whisper-device').value=cfg.whisper.device;$('whisper-channel').value=cfg.whisper.audio_channel;
   $('gpo-enabled').checked=cfg.gpo.enabled;$('gpo-port').value=cfg.gpo.port;$('gpo-channel').value=cfg.gpo.channel;$('gpo-pulse').value=cfg.gpo.pulse_ms;renderSource();renderOutputs();
 }
 function collect(){
   config.name=$('route-name').value;config.input={kind:$('input-kind').value,address:$('input-address').value,realtime:$('input-realtime').checked,format_code:$('decklink-mode').value||'',scte_error_policy:$('scte-error-policy').value,scte_pid:$('scte-pid').value,srt_mode:$('input-kind').value==='srt'?$('input-srt-mode').value:''};
-  config.whisper={model:$('whisper-model').value,language:$('whisper-language').value,delay_ms:0,device:$('whisper-device').value,audio_channel:Number($('whisper-channel').value)};
+  config.whisper={backend:$('whisper-backend').value,compute_type:$('whisper-compute').value,serial_port:$('whisper-serial').value.trim(),model:$('whisper-model').value,language:$('whisper-language').value,delay_ms:0,device:$('whisper-device').value,audio_channel:Number($('whisper-channel').value)};
   config.gpo={enabled:$('gpo-enabled').checked,port:$('gpo-port').value,baud:115200,channel:Number($('gpo-channel').value),pulse_ms:Number($('gpo-pulse').value)};return structuredClone(config);
 }
 function renderPlan(plan){
@@ -132,7 +139,7 @@ function renderState(state){
   $('exit-code').textContent=state.running?'RUNNING':state.last_exit===null?'IDLE':state.stopped_by_user?'STOPPED':'EXIT '+state.last_exit;
   const log=$('logs');const bottom=log.scrollTop+log.clientHeight>=log.scrollHeight-30;log.textContent=state.logs.join('\n')||'No route started. Configure your source and check readiness.';if(bottom)log.scrollTop=log.scrollHeight;
   const cap=state.capabilities;$('capabilities').replaceChildren();
-  [['FFmpeg',!!cap.ffmpeg],['H.264 / libx264',cap.libx264],['MPEG-2 video',cap.mpeg2video],['AAC audio',cap.aac],['SRT transport',cap.srt],['RTMP transport',cap.rtmp],['DeckLink SDI capture',cap.decklink_input],['SDI SCTE-104 / 35 → 104',cap.decklink_scte_output],['DeckLink device discovery',!!cap.decklink_devices?.length],['SCTE-104 → 35',cap.scte_runtime],['Live caption monitor',cap.source_monitor],['Whisper caption replacement',cap.recaption_runtime],['Native 708 output',cap.caption_formats_decklink],['Spanish CC2 engine',cap.bilingual_decklink],['OPUS-MT translation',cap.translation_available],['Whisper CUDA',cap.whisper?.cuda],['TSDuck',!!cap.tsp]].forEach(([name,yes])=>{const row=make('div',undefined,'cap-row');row.append(make('span',name),make('span',yes?'AVAILABLE':'NOT READY',yes?'yes':''));$('capabilities').append(row);});
+  [['FFmpeg',!!cap.ffmpeg],['H.264 / libx264',cap.libx264],['MPEG-2 video',cap.mpeg2video],['AAC audio',cap.aac],['SRT transport',cap.srt],['RTMP transport',cap.rtmp],['DeckLink SDI capture',cap.decklink_input],['SDI SCTE-104 / 35 → 104',cap.decklink_scte_output],['DeckLink device discovery',!!cap.decklink_devices?.length],['SCTE-104 → 35',cap.scte_runtime],['Live caption monitor',cap.source_monitor],['Whisper caption replacement',cap.recaption_runtime],['Native 708 output',cap.caption_formats_decklink],['Spanish CC2 engine',cap.bilingual_decklink],['OPUS-MT translation',cap.translation_available],['Faster Whisper',cap.whisper?.faster?.available],['EN530 serial runtime',cap.whisper?.serial],['Whisper CUDA',cap.whisper?.cuda||cap.whisper?.faster?.cuda],['TSDuck',!!cap.tsp]].forEach(([name,yes])=>{const row=make('div',undefined,'cap-row');row.append(make('span',name),make('span',yes?'AVAILABLE':'NOT READY',yes?'yes':''));$('capabilities').append(row);});
   $('ffmpeg-version').textContent=cap.version||'FFmpeg not found';renderMonitor({monitor:state.source_monitor,running:state.running,monitor_running:state.monitor_running});
 }
 let latestMonitor;

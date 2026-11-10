@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.15.1 — EN530 serial-only output
+
+- Add NULL output for EN530 serial captions without video/audio playout.
+- Require a configured serial port while retaining source audio and Whisper checks.
+
+## 0.15.0 — Faster Whisper and EN530 testing
+
+- Add selectable Faster Whisper recognition with overlapping four-second audio
+  windows, two-second hops and timestamp/text overlap deduplication.
+- Add optional EN530 serial mirroring at 1200 baud, 7O1, including E1 recovery.
+- Guided setup installs pinned Faster Whisper, CTranslate2, pyserial and compatible
+  PyAV packages.
+  OpenAI Whisper remains the saved-route default; Faster Whisper downloads its
+  own model on first use. Physical EN530 and Faster Whisper GPU testing pending.
+
 ## 0.14.0 — local Spanish translation and optional CC2
 
 - Add local OPUS-MT English-to-Spanish Dashboard translations with manual text

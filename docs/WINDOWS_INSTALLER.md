@@ -1,3 +1,13 @@
+# Windows test installer 0.15.1
+
+The 0.15.1 test installer includes Faster Whisper, EN530 serial support and a
+NULL output for serial captions without video/audio playout.
+Finish Setup installs both speech backends and serial packages. Existing routes
+keep OpenAI Whisper selected until changed in the recaptioning panel. Faster
+Whisper downloads CTranslate2 weights on first use; start with CPU/int8 for an
+initial test. Existing Torch CUDA setup does not establish CTranslate2 GPU support.
+Public download links below still refer to the published 0.14.0 release.
+
 # Guided Windows setup (0.14.0)
 
 For public testers, download **SpankVANC-0.14.0-Windows11-x64-Setup.exe** from

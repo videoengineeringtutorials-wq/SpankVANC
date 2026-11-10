@@ -1,3 +1,75 @@
+# November 10, 2026 — 0.15.1 test PC installation
+
+Built 0.15.1 app/source/Setup and installed Setup into the existing test PC
+application folder after confirming no Python/FFmpeg/app processes were running.
+Isolated and working payload manifests, embedded imports and setup imports pass.
+Settings, saved route and both selected media engine hashes preserved.
+Dashboard 0.15.1 is open with route/monitor idle; both recognition backends and
+serial runtime available. Native synthetic audio-only MPEG-TS through the NULL
+command produced 65,536 bytes of 16 kHz mono float PCM without video output.
+NULL preflight passes with both speech backends and no video encoder/filter.
+127 local unit/media tests and diff whitespace check pass.
+Physical EN530 reception and Faster Whisper CUDA inference remain unverified.
+Installer/checksum and testing notes are on the test PC desktop.
+No physical media or serial output started. No media engine rebuild required.
+Public verification: verification/null-output-0.15.1.json.
+Private paths, backups and installer hash belong in WORKSTATION_HANDOFF.md.
+
+# November 10, 2026 — NULL EN530 output (local development)
+
+Added NULL · EN530 serial only output. It uses routed audio and the existing
+Whisper/serial worker, requires a serial port/runtime, and bypasses video
+encoders, caption insertion filters and output device/destination checks.
+Input requirements still apply. Mixed NULL/video routes share capture and
+recognition. NULL has no Spanish CC2 or SCTE carriage.
+127 unit/media tests pass, including serial-only preflight/command and mixed
+output regressions; diff whitespace check passes. Physical EN530 reception
+and browser operation remain unverified. No deployment or packaging performed.
+
+# November 9, 2026 — 0.15.0 remote test installation
+
+Remote connectivity restored. Copied and hash-verified Setup/checksum on test
+PC desktop. Native isolated installer payload, embedded Python/setup imports,
+uninstall/reinstall/repair/state preservation pass. Updated idle working app;
+settings, saved route and selected local media engine hashes preserved. Installed
+managed speech dependencies; both backends/serial probe available. Dashboard
+0.15.0 open with route/monitor idle and saved OpenAI backend retained. CPU/int8
+small.en synthetic speech through installed Faster Whisper worker generates
+captions with valid 608 parity and decoded text. Physical media and EN530 serial
+were not started; CUDA inference remains unverified.125 local tests pass.
+
+Native testing caught PyAV19 metadata_errors API removal; pin PyAV16.0.1 in
+guided setup, alongside FW1.2.1/CT24.6.0/pyserial3.5/setuptools80.9.0. Public
+verification summary verification/faster-whisper-0.15.0.json. Private deployment
+paths/backups belong in WORKSTATION_HANDOFF.md. No public release or commit.
+
+# November 9, 2026 — 0.15.0 test installer prepared
+
+User requested an updated installer on the remote test PC. Version0.15.0 across
+app metadata/UI; guided setup now installs pinned Faster Whisper1.2.1,
+CTranslate2 4.6.0, pyserial3.5 and setuptools80.9.0 in managed speech Python.
+Resume adds these packages without reinstalling Torch when its profile matches;
+imports are rechecked on each run. OpenAI remains the saved-route default.
+App/source ZIPs and NSIS Setup built locally; archive hash/manifests/public-asset
+checks pass.124 full unit/media tests passed plus the new managed-runtime upgrade
+regression (12 setup tests pass). Windows-native installation/inference and
+physical EN530 tests remain pending. Recorded remote endpoints unreachable;
+asked user for current address. No remote file, process, route, settings or
+engine changes; no GitHub publication or commit. Installer in local releases/.
+
+# November 9, 2026 — local Faster Whisper / EN530 integration
+
+Added optional Faster Whisper backend with 4s/2s overlapping routed audio,
+word timestamp deduplication and missing-timestamp overlap fallback, plus optional
+EN530 serial mirroring at1200 7O1 with original caption/E1 commands. Existing
+OpenAI backend and saved-route defaults retained. UI/config/preflight/isolated
+worker updated; optional dependency instructions in WHISPER.md. Guided setup
+continues to install OpenAI Whisper. No deployment, publication, model download,
+physical serial operation or existing running route changes. Real Faster Whisper
+inference, Windows CUDA runtime and physical EN530 reception remain unverified.
+All124 unit/media tests pass, including4 new overlap/serial/preflight tests;
+`git diff --check` passes. Node is unavailable for a JS syntax CLI check.
+
 # November 3, 2026 — 0.14.0 Windows release preparation
 
 Packages the current local translation/CC2 work and earlier unpublished native

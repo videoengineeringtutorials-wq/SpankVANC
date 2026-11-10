@@ -1,0 +1,17 @@
+{
+  "version": "0.15.1",
+  "local_tests": 127,
+  "native_windows": {
+    "isolated_install": "passed",
+    "working_install": "passed",
+    "manifest_hashes_and_imports": "passed",
+    "settings_route_and_engine_preservation": "passed",
+    "dashboard_idle": true,
+    "null_preflight_both_backends": "passed",
+    "synthetic_audio_only_ts_to_float_pcm_bytes": 65536
+  },
+  "physical_media_started": false,
+  "physical_serial_opened": false,
+  "physical_en530": "unverified",
+  "faster_whisper_cuda_inference": "unverified"
+}

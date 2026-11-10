@@ -32,6 +32,39 @@ class WhisperTests(unittest.TestCase):
                  whisper=dict(available=True,cuda=True,models=['small.en']))
         return cfg,cap
 
+    def test_null_serial_only_requires_no_video_engine_or_destination(self):
+        from unittest.mock import patch
+        cfg,cap=self.route()
+        cfg['outputs'][0].update(kind='null',address='')
+        cfg['whisper']['serial_port']='COM6'
+        cap.update(libx264=False,aac=False,recaption_decklink=False)
+        cap['whisper']['serial']=True
+        result=plan(cfg,cap)
+        self.assertTrue(result['ready'],result['blockers'])
+        self.assertEqual(result['outputs'][0]['video_codec'],'none')
+        with patch('spankvanc.engine.executable',return_value='ffmpeg') as executable:
+            args=command(validate(cfg),cap)
+        executable.assert_called_once_with(False)
+        self.assertIn('pipe:1',args)
+        for option in ('-c:v','-vf','-a53cc','-c:a'):
+            self.assertEqual(args.count(option),1 if option=='-c:a' else 0)
+        self.assertEqual(args[args.index('-c:a')+1],'pcm_f32le')
+        self.assertEqual(args.count('-i'),1)
+        cfg['whisper']['serial_port']=''
+        self.assertTrue(any('EN530 serial port' in b for b in plan(cfg,cap)['blockers']))
+        cfg['whisper']['serial_port']='COM6';cap['whisper']['serial']=False
+        self.assertFalse(plan(cfg,cap)['ready'])
+
+    def test_null_and_video_share_one_capture_and_speech_pipe(self):
+        cfg,cap=self.route()
+        cfg['whisper']['serial_port']='COM6';cap['whisper']['serial']=True
+        cfg['outputs'].append(dict(name='Serial',kind='null',address='',captions='pass',scte='strip',enabled=True))
+        self.assertTrue(plan(cfg,cap)['ready'])
+        args=command(validate(cfg),cap,'/tmp/journal')
+        self.assertEqual(args.count('-i'),1)
+        self.assertEqual(args.count('pipe:1'),1)
+        self.assertEqual(sum('spankvanc_cc=journal=' in a for a in args),1)
+
     def test_gates_and_preview(self):
         cfg,cap=self.route()
         self.assertTrue(plan(cfg,cap)['ready'])
@@ -110,3 +143,49 @@ class WhisperTests(unittest.TestCase):
         args=command(validate(cfg),cap)
         self.assertEqual(args[args.index('-fps_mode:v')+1],'cfr')
         self.assertEqual(args[args.index('-r:v')+1],'30')
+
+class FasterWhisperTests(unittest.TestCase):
+    def segment(self, words, probability=0):
+        from types import SimpleNamespace as NS
+        return NS(no_speech_prob=probability, words=[NS(word=w, end=e) for w,e in words], text='')
+
+    def test_overlapping_windows_timestamp_shift_and_real_repetition(self):
+        from spankvanc.whisper_worker import WordCommitter
+        c=WordCommitter()
+        self.assertEqual(c.commit([self.segment([('Hello,',1),('world',2),('later',3.9)])],0,3.65),'Hello, world')
+        self.assertEqual(c.commit([self.segment([('world!',.2),('later',1.9),('world',3)])],2,5.65),'later world')
+        self.assertEqual(c.commit([self.segment([('noise',5)],.9)],2,9),'')
+
+    def test_missing_timestamps_fallback(self):
+        from types import SimpleNamespace as NS
+        from spankvanc.whisper_worker import WordCommitter
+        c=WordCommitter()
+        self.assertEqual(c.commit([NS(no_speech_prob=0,words=None,text='Hello world')],0,4),'Hello world')
+        self.assertEqual(c.commit([NS(no_speech_prob=0,words=None,text='world again')],2,6),'again')
+
+    def test_en530_wire_format_and_recovery(self):
+        import sys
+        from types import SimpleNamespace as NS
+        from unittest.mock import Mock, patch
+        from spankvanc.whisper_worker import EN530Sender,en530_frames
+        frames=en530_frames('“Hello”… '+ 'A'*70+'\x01')
+        self.assertTrue(all(f.startswith(b'\x01 ') and f.endswith(b'\r') and len(f)<=35 for f in frames))
+        self.assertTrue(all(all(32<=v<127 for v in f[2:-1]) for f in frames))
+        port=Mock();port.write.side_effect=lambda data:len(data)
+        port.readline.side_effect=[b'E1\r',b'OK\r']
+        module=NS(Serial=Mock(return_value=port),SEVENBITS=7,PARITY_ODD='O',STOPBITS_ONE=1)
+        with patch.dict(sys.modules,serial=module):
+            sender=EN530Sender('COM6');sender.submit('hello');sender.close()
+        self.assertEqual([c.args[0] for c in port.write.call_args_list],[b'\x01 hello\r',b'\x012\r'])
+        self.assertEqual(module.Serial.call_args.kwargs['baudrate'],1200)
+        port.close.assert_called_once()
+
+    def test_backend_preflight_and_legacy_defaults(self):
+        cfg,cap=WhisperTests().route()
+        self.assertEqual(validate(cfg)['whisper']['backend'],'openai')
+        cfg['whisper'].update(backend='faster',serial_port='COM6')
+        self.assertFalse(plan(cfg,cap)['ready'])
+        cap['whisper'].update(faster=dict(available=True,cuda=True,models=['small.en']),serial=True)
+        self.assertTrue(plan(cfg,cap)['ready'])
+        cfg['whisper']['compute_type']='bogus'
+        with self.assertRaises(ConfigError):validate(cfg)
